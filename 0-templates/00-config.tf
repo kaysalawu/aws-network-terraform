@@ -3,9 +3,9 @@
 
 #----------------------------
 locals {
-  username = "azureuser"
+  username = "ubuntu"
   password = "Password123"
-  vmsize   = "Standard_DS1_v2"
+  vmsize   = "t3.micro"
   psk      = "changeme"
 
   region1          = "northeurope"
