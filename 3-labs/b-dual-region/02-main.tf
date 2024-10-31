@@ -3,8 +3,8 @@
 ####################################################
 
 locals {
-  prefix                      = "a"
-  lb_name                     = "hybrid"
+  prefix                      = "b"
+  lb_name                     = "dual-region"
   enable_onprem_wan_link      = false
   enable_diagnostics          = false
   enable_ipv6                 = false
@@ -66,6 +66,20 @@ locals {
     { name = "spoke2", address_prefix = [local.spoke2_address_space.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
     { name = "spoke1v6", address_prefix = [local.spoke1_address_space.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
     { name = "spoke2v6", address_prefix = [local.spoke2_address_space.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
+  ])
+  region2_default_udr_destinations = [
+    { name = "default-region2", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "defaultv6-region2", address_prefix = ["::/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 }
+  ]
+  spoke5_udr_main_routes = concat(local.region2_default_udr_destinations, [
+    { name = "hub2", address_prefix = [local.hub2_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "hub2v6", address_prefix = [local.hub2_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
+  ])
+  hub2_udr_main_routes = concat(local.region2_default_udr_destinations, [
+    { name = "spoke4", address_prefix = [local.spoke4_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "spoke5", address_prefix = [local.spoke5_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "spoke4v6", address_prefix = [local.spoke4_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
+    { name = "spoke5v6", address_prefix = [local.spoke5_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
   ])
 
   firewall_sku = "Basic"
