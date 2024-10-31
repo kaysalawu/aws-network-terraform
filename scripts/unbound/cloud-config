@@ -24,10 +24,9 @@ write_files:
           access-control: 10.0.0.0/8 allow
 
           %{~ for tuple in ONPREM_LOCAL_RECORDS ~}
-          local-data: "${tuple.name} ${tuple.ttl} IN ${tuple.type} ${tuple.rdata}"
+          local-data: "${tuple.name} 3600 IN A ${tuple.record}"
           %{~ endfor ~}
 
-          # hosts redirected to PSC
           %{~ for tuple in REDIRECTED_HOSTS ~}
           %{~ for host in tuple.hosts ~}
           local-zone: ${host} redirect
@@ -36,7 +35,7 @@ write_files:
 
           %{~ for tuple in REDIRECTED_HOSTS ~}
           %{~ for host in tuple.hosts ~}
-          local-data: "${host} ${tuple.ttl} ${tuple.class} ${tuple.type} ${tuple.rdata}"
+          local-data: "${host} ${tuple.ttl} ${tuple.class} ${tuple.type} ${tuple.record}"
           %{~ endfor ~}
           %{~ endfor ~}
 

@@ -1,19 +1,11 @@
 #! /bin/bash
 
-exec > /var/log/gcp-startup.log 2>&1
-export DEBIAN_FRONTEND=noninteractive
+exec > /var/log/azure-startup.log
 
 apt update
-apt install -y unzip jq tcpdump dnsutils net-tools nmap apache2-utils iperf3
-apt install -y ca-certificates curl gnupg lsb-release
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-docker version
-docker compose version
+apt install -y python3-pip python3-dev python3-venv unzip jq tcpdump dnsutils net-tools nmap apache2-utils iperf3
+
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 ########################################################
 # test scripts (ipv4)
@@ -21,12 +13,10 @@ docker compose version
 
 # ping-ipv4
 
-cat <<'EOF' >/usr/local/bin/ping-ipv4
-echo -e "\n=============================="
-echo -e " ping ipv4 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/ping-ipv4
+echo -e "\n ping ipv4 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ping, false) ~}
+%{~ if try(target.ping, true) ~}
 %{~ if try(target.ipv4, "") != "" ~}
 echo "${target.name} - ${target.ipv4} -$(timeout 3 ping -4 -qc2 -W1 ${target.ipv4} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
 %{ endif ~}
@@ -37,13 +27,13 @@ chmod a+x /usr/local/bin/ping-ipv4
 
 # ping-dns4
 
-cat <<'EOF' >/usr/local/bin/ping-dns4
-echo -e "\n=============================="
-echo -e " ping dns ipv4 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/ping-dns4
+echo -e "\n ping dns ipv4 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ping, false) ~}
-echo "${target.host} - $(timeout 3 dig +short ${target.host} | tail -n1) -$(timeout 3 ping -4 -qc2 -W1 ${target.host} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
+%{~ if try(target.ping, true) ~}
+%{~ if try(target.ipv4, "") != "" ~}
+echo "${target.dns} - $(timeout 3 dig +short ${target.dns} | tail -n1) -$(timeout 3 ping -4 -qc2 -W1 ${target.dns} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
+%{ endif ~}
 %{ endif ~}
 %{ endfor ~}
 EOF
@@ -51,10 +41,8 @@ chmod a+x /usr/local/bin/ping-dns4
 
 # curl-ipv4
 
-cat <<'EOF' >/usr/local/bin/curl-ipv4
-echo -e "\n=============================="
-echo -e " curl ipv4 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/curl-ipv4
+echo -e "\n curl ipv4 ...\n"
 %{ for target in TARGETS ~}
 %{~ if try(target.curl, true) ~}
 %{~ if try(target.ipv4, "") != "" ~}
@@ -67,13 +55,11 @@ chmod a+x /usr/local/bin/curl-ipv4
 
 # curl-dns4
 
-cat <<'EOF' >/usr/local/bin/curl-dns4
-echo -e "\n=============================="
-echo -e " curl dns ipv4 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/curl-dns4
+echo -e "\n curl dns ipv4 ...\n"
 %{ for target in TARGETS ~}
 %{~ if try(target.curl, true) ~}
-echo  "$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null ${target.host}) - ${target.host}"
+echo  "$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null ${target.dns}) - ${target.dns}"
 %{ endif ~}
 %{ endfor ~}
 EOF
@@ -81,12 +67,10 @@ chmod a+x /usr/local/bin/curl-dns4
 
 # trace-ipv4
 
-cat <<'EOF' >/usr/local/bin/trace-ipv4
-echo -e "\n=============================="
-echo -e " trace ipv4 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/trace-ipv4
+echo -e "\n trace ipv4 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ping, false) ~}
+%{~ if try(target.ping, true) ~}
 %{~ if try(target.ipv4, "") != "" ~}
 echo -e "\n${target.name}"
 echo -e "-------------------------------------"
@@ -97,77 +81,79 @@ timeout 9 tracepath -4 ${target.ipv4}
 EOF
 chmod a+x /usr/local/bin/trace-ipv4
 
-# ptr-ipv4
-
-cat <<'EOF' >/usr/local/bin/ptr-ipv4
-echo -e "\n=============================="
-echo -e " PTR ipv4 ..."
-echo "=============================="
-%{ for target in TARGETS ~}
-%{~ if try(target.ptr, false) ~}
-%{~ if try(target.ipv4, "") != "" ~}
-arpa_zone=$(dig -x ${target.ipv4} | grep "QUESTION SECTION" -A 1 | tail -n 1 | awk '{print $1}')
-ptr_record=$(timeout 3 dig -x ${target.ipv4} +short)
-echo "${target.name} - ${target.ipv4} --> $ptr_record [$arpa_zone]"
-%{ endif ~}
-%{ endif ~}
-%{ endfor ~}
-EOF
-chmod a+x /usr/local/bin/ptr-ipv4
-
 ########################################################
 # test scripts (ipv6)
 ########################################################
 
+# ping-ipv6
+
+cat <<'EOF' > /usr/local/bin/ping-ipv6
+echo -e "\n ping ipv6 ...\n"
+%{ for target in TARGETS ~}
+%{~ if try(target.ping, true) ~}
+%{~ if try(target.ipv6, "") != "" ~}
+echo "${target.name} - ${target.ipv6} -$(timeout 3 ping -6 -qc2 -W1 ${target.ipv6} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
+%{ endif ~}
+%{ endif ~}
+%{ endfor ~}
+EOF
+chmod a+x /usr/local/bin/ping-ipv6
+
 # ping-dns6
 
-cat <<'EOF' >/usr/local/bin/ping-dns6
-echo -e "\n=============================="
-echo -e " ping dns ipv6 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/ping-dns6
+echo -e "\n ping dns ipv6 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ipv6, true) ~}
-%{~ if try(target.ping, false) ~}
-echo "${target.host} - $(timeout 3 dig AAAA +short ${target.host} | tail -n1) -$(timeout 3 ping -6 -qc2 -W1 ${target.host} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
+%{~ if try(target.ping, true) ~}
+%{~ if try(target.ipv6, "") != "" ~}
+echo "${target.dns} - $(timeout 3 dig AAAA +short ${target.dns} | tail -n1) -$(timeout 3 ping -6 -qc2 -W1 ${target.dns} 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')"
 %{ endif ~}
 %{ endif ~}
 %{ endfor ~}
 EOF
 chmod a+x /usr/local/bin/ping-dns6
 
+# curl-ipv6
+
+cat <<'EOF' > /usr/local/bin/curl-ipv6
+echo -e "\n curl ipv6 ...\n"
+%{ for target in TARGETS ~}
+%{~ if try(target.curl, true) ~}
+%{~ if try(target.ipv6, "") != "" ~}
+echo  "$(timeout 3 curl -6 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null [${target.ipv6}]) - ${target.name} [${target.ipv6}]"
+%{ endif ~}
+%{ endif ~}
+%{ endfor ~}
+EOF
+chmod a+x /usr/local/bin/curl-ipv6
+
 # curl-dns6
 
-cat <<'EOF' >/usr/local/bin/curl-dns6
-echo -e "\n=============================="
-echo -e " curl dns ipv6 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/curl-dns6
+echo -e "\n curl dns ipv6 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ipv6, true) ~}
 %{~ if try(target.curl, true) ~}
-echo  "$(timeout 3 curl -6 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null ${target.host}) - ${target.host}"
-%{ endif ~}
+echo  "$(timeout 3 curl -6 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null ${target.dns}) - ${target.dns}"
 %{ endif ~}
 %{ endfor ~}
 EOF
 chmod a+x /usr/local/bin/curl-dns6
 
-# trace-dns6
+# trace-ipv6
 
-cat <<'EOF' >/usr/local/bin/trace-dns6
-echo -e "\n=============================="
-echo -e " trace ipv6 ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/trace-ipv6
+echo -e "\n trace ipv6 ...\n"
 %{ for target in TARGETS ~}
-%{~ if try(target.ipv6, true) ~}
-%{~ if try(target.ping, false) ~}
+%{~ if try(target.ping, true) ~}
+%{~ if try(target.ipv6, "") != "" ~}
 echo -e "\n${target.name}"
 echo -e "-------------------------------------"
-timeout 9 tracepath -6 ${target.host}
+timeout 9 tracepath -6 ${target.ipv6}
 %{ endif ~}
 %{ endif ~}
 %{ endfor ~}
 EOF
-chmod a+x /usr/local/bin/trace-dns6
+chmod a+x /usr/local/bin/trace-ipv6
 
 #########################################################
 # other scripts
@@ -175,13 +161,18 @@ chmod a+x /usr/local/bin/trace-dns6
 
 # dns-info
 
-cat <<'EOF' >/usr/local/bin/dns-info
-echo -e "\n=============================="
-echo -e " resolvectl ..."
-echo "=============================="
+cat <<'EOF' > /usr/local/bin/dns-info
+echo -e "\n resolvectl ...\n"
 resolvectl status
 EOF
 chmod a+x /usr/local/bin/dns-info
+
+# azure service tester
+
+cat <<'EOF' > /usr/local/bin/crawlz
+sudo bash -c "cd /var/lib/azure/crawler/app && ./crawler.sh"
+EOF
+chmod a+x /usr/local/bin/crawlz
 
 ########################################################
 # traffic generators (ipv4)
@@ -190,10 +181,10 @@ chmod a+x /usr/local/bin/dns-info
 # light-traffic generator
 
 %{ if TARGETS_LIGHT_TRAFFIC_GEN != [] ~}
-cat <<'EOF' >/usr/local/bin/light-traffic
+cat <<'EOF' > /usr/local/bin/light-traffic
 %{ for target in TARGETS_LIGHT_TRAFFIC_GEN ~}
 %{~ if try(target.probe, false) ~}
-nping -c ${try(target.count, "5")} --${try(target.protocol, "tcp")}-connect -p ${try(target.port, "80,8080")} ${try(target.host, target.ip)} > /dev/null 2>&1
+nping -c ${try(target.count, "5")} --${try(target.protocol, "tcp")}-connect -p ${try(target.port, "80,8080")} ${try(target.dns, target.ip)} > /dev/null 2>&1
 %{ endif ~}
 %{ endfor ~}
 EOF
@@ -203,7 +194,7 @@ chmod a+x /usr/local/bin/light-traffic
 # heavy-traffic generator
 
 %{ if TARGETS_HEAVY_TRAFFIC_GEN != [] ~}
-cat <<'EOF' >/usr/local/bin/heavy-traffic
+cat <<'EOF' > /usr/local/bin/heavy-traffic
 #! /bin/bash
 i=0
 while [ $i -lt 5 ]; do
@@ -224,10 +215,10 @@ chmod a+x /usr/local/bin/heavy-traffic
 # light-traffic generator
 
 %{ if TARGETS_LIGHT_TRAFFIC_GEN != [] ~}
-cat <<'EOF' >/usr/local/bin/light-traffic-ipv6
+cat <<'EOF' > /usr/local/bin/light-traffic-ipv6
 %{ for target in TARGETS_LIGHT_TRAFFIC_GEN ~}
 %{~ if try(target.probe, false) ~}
-nping -c ${try(target.count, "5")} -6 --${try(target.protocol, "tcp")}-connect -p ${try(target.port, "80,8080")} ${try(target.host, target.ip)} > /dev/null 2>&1
+nping -c ${try(target.count, "5")} -6 --${try(target.protocol, "tcp")}-connect -p ${try(target.port, "80,8080")} ${try(target.dns, target.ip)} > /dev/null 2>&1
 %{ endif ~}
 %{ endfor ~}
 EOF
@@ -237,7 +228,7 @@ chmod a+x /usr/local/bin/light-traffic-ipv6
 # heavy-traffic generator
 
 %{ if TARGETS_HEAVY_TRAFFIC_GEN != [] ~}
-cat <<'EOF' >/usr/local/bin/heavy-traffic-ipv6
+cat <<'EOF' > /usr/local/bin/heavy-traffic-ipv6
 #! /bin/bash
 
 get_ipv6() {
@@ -269,39 +260,10 @@ chmod a+x /usr/local/bin/heavy-traffic-ipv6
 %{ endif ~}
 
 ########################################################
-# systemctl services
-########################################################
-
-cat <<EOF > /etc/systemd/system/flaskapp.service
-[Unit]
-Description=Manage Docker Compose services for FastAPI
-After=docker.service
-Requires=docker.service
-
-[Service]
-Type=simple
-Environment="HOSTNAME=$(hostname)"
-ExecStart=/usr/bin/docker compose -f /var/lib/gcp/fastapi/docker-compose-http-80.yml up -d && \
-          /usr/bin/docker compose -f /var/lib/gcp/fastapi/docker-compose-http-8080.yml up -d
-ExecStop=/usr/bin/docker compose -f /var/lib/gcp/fastapi/docker-compose-http-80.yml down && \
-         /usr/bin/docker compose -f /var/lib/gcp/fastapi/docker-compose-http-8080.yml down
-Restart=always
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-systemctl daemon-reload
-systemctl enable flaskapp.service
-systemctl restart flaskapp.service
-
-########################################################
 # crontabs
 ########################################################
 
-cat <<'EOF' >/etc/cron.d/traffic-gen
+cat <<'EOF' > /etc/cron.d/traffic-gen
 %{ if TARGETS_LIGHT_TRAFFIC_GEN != [] ~}
 */1 * * * * /usr/local/bin/light-traffic 2>&1 > /dev/null
 %{ endif ~}

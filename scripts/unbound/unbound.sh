@@ -36,7 +36,7 @@ server:
         local-data: "${tuple.name} ${tuple.ttl} IN ${tuple.type} ${tuple.rdata}"
         %{~ endfor ~}
 
-        # hosts redirected to PSC
+        # hosts redirected to PrivateLink
         %{~ for tuple in REDIRECTED_HOSTS ~}
         %{~ for host in tuple.hosts ~}
         local-zone: ${host} redirect
@@ -45,7 +45,7 @@ server:
 
         %{~ for tuple in REDIRECTED_HOSTS ~}
         %{~ for host in tuple.hosts ~}
-        local-data: "${host} ${tuple.ttl} ${tuple.class} ${tuple.type} ${tuple.rdata}"
+        local-data: "${host} ${tuple.ttl} ${tuple.class} ${tuple.type} ${tuple.record}"
         %{~ endfor ~}
         %{~ endfor ~}
 
