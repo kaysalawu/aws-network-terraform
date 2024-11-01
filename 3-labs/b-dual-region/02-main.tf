@@ -43,6 +43,24 @@ provider "aws" {
   secret_key = var.aws_secret_access_key
 }
 
+####################################################
+# data
+####################################################
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"]
+}
 
 ####################################################
 # network features
@@ -58,28 +76,28 @@ locals {
     { name = "defaultv6-region1", address_prefix = ["::/0"], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 }
   ]
   spoke2_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "hub1", address_prefix = [local.hub1_address_space.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "hub1v6", address_prefix = [local.hub1_address_space.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
+    { name = "hub1", address_prefix = [local.hub1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
+    { name = "hub1v6", address_prefix = [local.hub1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
   ])
   hub1_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "spoke1", address_prefix = [local.spoke1_address_space.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke2", address_prefix = [local.spoke2_address_space.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke1v6", address_prefix = [local.spoke1_address_space.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-    { name = "spoke2v6", address_prefix = [local.spoke2_address_space.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
+    { name = "spoke1", address_prefix = [local.spoke1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
+    { name = "spoke2", address_prefix = [local.spoke2_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
+    { name = "spoke1v6", address_prefix = [local.spoke1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
+    { name = "spoke2v6", address_prefix = [local.spoke2_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
   ])
   region2_default_udr_destinations = [
     { name = "default-region2", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr },
     { name = "defaultv6-region2", address_prefix = ["::/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 }
   ]
   spoke5_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "hub2", address_prefix = [local.hub2_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "hub2v6", address_prefix = [local.hub2_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
+    { name = "hub2", address_prefix = [local.hub2_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "hub2v6", address_prefix = [local.hub2_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
   ])
   hub2_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "spoke4", address_prefix = [local.spoke4_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke5", address_prefix = [local.spoke5_address_space.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke4v6", address_prefix = [local.spoke4_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-    { name = "spoke5v6", address_prefix = [local.spoke5_address_space.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
+    { name = "spoke4", address_prefix = [local.spoke4_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "spoke5", address_prefix = [local.spoke5_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
+    { name = "spoke4v6", address_prefix = [local.spoke4_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
+    { name = "spoke5v6", address_prefix = [local.spoke5_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
   ])
 
   firewall_sku = "Basic"
@@ -87,7 +105,7 @@ locals {
   hub1_features = {
     config_vnet = {
       bgp_community               = local.hub1_bgp_community
-      address_space               = local.hub1_address_space
+      address_space               = local.hub1_cidr
       subnets                     = local.hub1_subnets
       enable_private_dns_resolver = true
       enable_ars                  = false
@@ -189,7 +207,7 @@ locals {
   hub2_features = {
     config_vnet = {
       bgp_community               = local.hub2_bgp_community
-      address_space               = local.hub2_address_space
+      address_space               = local.hub2_cidr
       subnets                     = local.hub2_subnets
       enable_private_dns_resolver = true
       enable_ars                  = false
@@ -586,26 +604,6 @@ module "proxy_vm_cloud_init" {
 
 # branch1
 
-# resource "azurerm_public_ip" "branch1_nva_pip" {
-#   resource_group_name = azurerm_resource_group.rg.name
-#   name                = "${local.branch1_prefix}nva-pip"
-#   location            = local.branch1_location
-#   sku                 = "Standard"
-#   allocation_method   = "Static"
-#   tags                = local.branch1_tags
-# }
-
-# branch3
-
-# resource "azurerm_public_ip" "branch3_nva_pip" {
-#   count               = length(local.regions) > 1 ? 1 : 0
-#   resource_group_name = azurerm_resource_group.rg.name
-#   name                = "${local.branch3_prefix}nva-pip"
-#   location            = local.branch3_location
-#   sku                 = "Standard"
-#   allocation_method   = "Static"
-# }
-
 ####################################################
 # firewall policy
 ####################################################
@@ -705,7 +703,7 @@ locals {
       { prefix = "0.0.0.0/0", next_hop = local.hub1_default_gw_trust },
       # { prefix = "${module.tgw1.router_bgp_ip0}/32", next_hop = local.hub1_default_gw_trust },
       # { prefix = "${module.tgw1.router_bgp_ip1}/32", next_hop = local.hub1_default_gw_trust },
-      { prefix = local.spoke2_address_space[0], next_hop = local.hub1_default_gw_trust },
+      { prefix = local.spoke2_cidr[0], next_hop = local.hub1_default_gw_trust },
     ]
     TUNNELS = []
     BGP_SESSIONS_IPV4 = [
@@ -726,7 +724,7 @@ locals {
     ]
     BGP_ADVERTISED_PREFIXES_IPV4 = [
       local.hub1_subnets["MainSubnet"].address_prefixes[0],
-      local.spoke2_address_space[0],
+      local.spoke2_cidr[0],
     ]
   }
   hub1_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub1_nva_vars, {
@@ -770,7 +768,7 @@ locals {
       { prefix = "0.0.0.0/0", next_hop = local.hub2_default_gw_trust },
       # { prefix = "${module.tgw2.router_bgp_ip0}/32", next_hop = local.hub2_default_gw_trust },
       # { prefix = "${module.tgw2.router_bgp_ip1}/32", next_hop = local.hub2_default_gw_trust },
-      { prefix = local.spoke5_address_space[0], next_hop = local.hub2_default_gw_trust },
+      { prefix = local.spoke5_cidr[0], next_hop = local.hub2_default_gw_trust },
     ]
     TUNNELS = []
     BGP_SESSIONS_IPV4 = [
@@ -791,7 +789,7 @@ locals {
     ]
     BGP_ADVERTISED_PREFIXES_IPV4 = [
       local.hub2_subnets["MainSubnet"].address_prefixes[0],
-      local.spoke5_address_space[0],
+      local.spoke5_cidr[0],
     ]
   }
   hub2_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub2_nva_vars, {

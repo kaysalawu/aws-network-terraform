@@ -9,10 +9,53 @@ data "http" "my_public_ip" {
 }
 
 ####################################################
-# log analytics workspace
+# iam
 ####################################################
 
+# policy allowing ec2 to assume role
 
+data "aws_iam_policy_document" "ec2_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+# policy granting full access
+
+data "aws_iam_policy_document" "s3_policy" {
+  statement {
+    actions   = ["*"]
+    resources = ["*"]
+    effect    = "Allow"
+  }
+}
+
+# iam role for ec2 with assume role permissions
+
+resource "aws_iam_role" "ec2_iam_role" {
+  name               = "${local.prefix}ec2-iam-role"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
+}
+
+# attach policy to role
+
+resource "aws_iam_role_policy" "s3_iam_policy" {
+  name   = "${local.prefix}s3-iam-policy"
+  role   = aws_iam_role.ec2_iam_role.id
+  policy = data.aws_iam_policy_document.s3_policy.json
+}
+
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "${local.prefix}ec2-instance-profile"
+  role = aws_iam_role.ec2_iam_role.name
+}
+
+# instance profile for iam role
 
 ####################################################
 # private dns zone
@@ -24,7 +67,16 @@ data "http" "my_public_ip" {
 # s3
 ####################################################
 
+resource "random_id" "bucket" {
+  byte_length = 2
+}
 
+resource "aws_s3_bucket" "bucket" {
+  for_each      = var.regions
+  bucket        = replace(replace(lower("${local.prefix}${each.key}${random_id.bucket.hex}"), "-", ""), "_", "")
+  force_destroy = true
+  tags          = var.tags
+}
 
 ####################################################
 # nsg

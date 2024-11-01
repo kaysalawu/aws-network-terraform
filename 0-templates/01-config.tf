@@ -88,7 +88,7 @@ locals {
 
 locals {
   vhub1_prefix            = local.prefix == "" ? "vhub1-" : join("-", [local.prefix, "vhub1-"])
-  vhub1_location          = local.region1
+  vhub1                   = local.region1
   vhub1_bgp_asn           = "65515"
   vhub1_address_prefix    = "192.168.11.0/24"
   vhub1_vpngw_bgp_apipa_0 = cidrhost(local.bgp_apipa_range1, 1)
@@ -100,7 +100,7 @@ locals {
 
 locals {
   vhub2_prefix            = local.prefix == "" ? "vhub2-" : join("-", [local.prefix, "vhub2-"])
-  vhub2_location          = local.region2
+  vhub2                   = local.region2
   vhub2_bgp_asn           = "65515"
   vhub2_address_prefix    = "192.168.22.0/24"
   vhub2_vpngw_bgp_apipa_0 = cidrhost(local.bgp_apipa_range3, 1)
@@ -112,7 +112,7 @@ locals {
 
 locals {
   hub1_prefix        = local.prefix == "" ? "hub1-" : join("-", [local.prefix, "hub1-"])
-  hub1_location      = local.region1
+  hub1               = local.region1
   hub1_address_space = ["10.11.0.0/16", "fd00:db8:11::/56", ]
   hub1_bgp_community = "12076:20011"
   hub1_nat_ranges = {
@@ -180,7 +180,7 @@ locals {
 
 locals {
   hub2_prefix        = local.prefix == "" ? "hub2-" : join("-", [local.prefix, "hub2-"])
-  hub2_location      = local.region2
+  hub2               = local.region2
   hub2_address_space = ["10.22.0.0/16", "fd00:db8:22::/56", ]
   hub2_bgp_community = "12076:20022"
   hub2_dns_zone      = local.region2_dns_zone
@@ -240,7 +240,7 @@ locals {
 
 locals {
   branch1_prefix        = local.prefix == "" ? "branch1-" : join("-", [local.prefix, "branch1-"])
-  branch1_location      = local.region1
+  branch1               = local.region1
   branch1_address_space = ["10.10.0.0/16", "fd00:db8:10::/56", ]
   branch1_bgp_community = "12076:20010"
   branch1_nva_asn       = "65001"
@@ -281,7 +281,7 @@ locals {
 
 locals {
   branch2_prefix        = local.prefix == "" ? "branch2-" : join("-", [local.prefix, "branch2-"])
-  branch2_location      = local.region1
+  branch2               = local.region1
   branch2_address_space = ["10.20.0.0/16", "fd00:db8:20::/56", ]
   branch2_bgp_community = "12076:20020"
   branch2_nva_asn       = "65002"
@@ -324,7 +324,7 @@ locals {
 
 locals {
   branch3_prefix        = local.prefix == "" ? "branch3-" : join("-", [local.prefix, "branch3-"])
-  branch3_location      = local.region2
+  branch3               = local.region2
   branch3_address_space = ["10.30.0.0/16", "fd00:db8:30::/56", ]
   branch3_bgp_community = "12076:20030"
   branch3_nva_asn       = "65003"
@@ -365,7 +365,7 @@ locals {
 
 locals {
   spoke1_prefix        = local.prefix == "" ? "spoke1-" : join("-", [local.prefix, "spoke1-"])
-  spoke1_location      = local.region1
+  spoke1               = local.region1
   spoke1_address_space = ["10.1.0.0/16", "fd00:db8:1::/56", ]
   spoke1_bgp_community = "12076:20001"
   spoke1_dns_zone      = local.region1_dns_zone
@@ -403,7 +403,7 @@ locals {
 
 locals {
   spoke2_prefix        = local.prefix == "" ? "spoke2-" : join("-", [local.prefix, "spoke2-"])
-  spoke2_location      = local.region1
+  spoke2               = local.region1
   spoke2_address_space = ["10.2.0.0/16", "fd00:db8:2::/56", ]
   spoke2_bgp_community = "12076:20002"
   spoke2_dns_zone      = local.region1_dns_zone
@@ -441,7 +441,7 @@ locals {
 
 locals {
   spoke3_prefix        = local.prefix == "" ? "spoke3-" : join("-", [local.prefix, "spoke3-"])
-  spoke3_location      = local.region1
+  spoke3               = local.region1
   spoke3_address_space = ["10.3.0.0/16", "fd00:db8:3::/56", ]
   spoke3_bgp_community = "12076:20003"
   spoke3_dns_zone      = local.region1_dns_zone
@@ -479,7 +479,7 @@ locals {
 
 locals {
   spoke4_prefix        = local.prefix == "" ? "spoke4-" : join("-", [local.prefix, "spoke4-"])
-  spoke4_location      = local.region2
+  spoke4               = local.region2
   spoke4_address_space = ["10.4.0.0/16", "fd00:db8:4::/56", ]
   spoke4_bgp_community = "12076:20004"
   spoke4_dns_zone      = local.region2_dns_zone
@@ -517,7 +517,7 @@ locals {
 
 locals {
   spoke5_prefix        = local.prefix == "" ? "spoke5-" : join("-", [local.prefix, "spoke5-"])
-  spoke5_location      = local.region2
+  spoke5               = local.region2
   spoke5_address_space = ["10.5.0.0/16", "fd00:db8:5::/56", ]
   spoke5_bgp_community = "12076:20005"
   spoke5_dns_zone      = local.region2_dns_zone
@@ -555,7 +555,7 @@ locals {
 
 locals {
   spoke6_prefix        = local.prefix == "" ? "spoke6-" : join("-", [local.prefix, "spoke6-"])
-  spoke6_location      = local.region2
+  spoke6               = local.region2
   spoke6_address_space = ["10.6.0.0/16", "fd00:db8:6::/56", ]
   spoke6_bgp_community = "12076:20006"
   spoke6_dns_zone      = local.region2_dns_zone

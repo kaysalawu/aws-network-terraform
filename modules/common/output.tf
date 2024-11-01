@@ -1,7 +1,11 @@
 
-# output "storage_accounts" {
-#   value = azurerm_storage_account.storage_accounts
-# }
+output "bucket" {
+  value = aws_s3_bucket.bucket
+}
+
+output "iam_instance_profile" {
+  value = aws_iam_instance_profile.ec2_instance_profile
+}
 
 # output "log_analytics_workspaces" {
 #   value = azurerm_log_analytics_workspace.log_analytics_workspaces

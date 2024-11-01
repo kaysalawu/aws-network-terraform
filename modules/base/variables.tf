@@ -1,9 +1,4 @@
 
-variable "resource_group" {
-  description = "resource group name"
-  type        = any
-}
-
 variable "prefix" {
   description = "prefix to append before all resources"
   type        = string
@@ -15,15 +10,9 @@ variable "env" {
   default     = "dev"
 }
 
-variable "location" {
-  description = "vnet region location"
+variable "region" {
+  description = "vpc region"
   type        = string
-}
-
-variable "bgp_community" {
-  description = "bgp community"
-  type        = string
-  default     = null
 }
 
 variable "tags" {
@@ -32,46 +21,10 @@ variable "tags" {
   default     = {}
 }
 
-variable "storage_account" {
-  description = "storage account object"
-  type        = any
-  default     = null
-}
-
-variable "enable_diagnostics" {
-  description = "enable diagnostics"
-  type        = bool
-  default     = false
-}
-
-variable "log_analytics_workspace_name" {
-  description = "log analytics workspace name"
-  type        = string
-  default     = null
-}
-
-variable "network_watcher_resource_group_name" {
-  description = "network watcher resource group name"
-  type        = string
-  default     = null
-}
-
-variable "network_watcher_name" {
-  description = "network watcher name"
-  type        = string
-  default     = null
-}
-
-variable "flow_log_nsg_ids" {
-  description = "flow log nsg id"
-  type        = list(string)
-  default     = []
-}
-
 variable "admin_username" {
   description = "test username. please change for production"
   type        = string
-  default     = "azureuser"
+  default     = "ubuntu"
 }
 
 variable "admin_password" {
@@ -86,336 +39,118 @@ variable "ssh_public_key" {
   default     = null
 }
 
-variable "dns_zones_linked_to_vnet" {
-  description = "dns zones linked to vnet"
-  type = list(object({
-    name                 = string
-    registration_enabled = optional(bool, false)
-  }))
-  default = []
+variable "cidr" {
+  description = "(Optional) The IPv4 CIDR blocks for the VPC. CIDR can be explicitly set or it can be derived from IPAM using `ipv4_netmask_length` & `ipv4_ipam_pool_id`"
+  type        = list(string)
+  default     = "10.0.0.0/16"
 }
 
-variable "nsg_subnet_map" {
-  description = "subnets to associate to nsg"
-  type        = map(any)
-  default     = {}
-}
-
-variable "dns_zone_linked_rulesets" {
-  description = "private dns rulesets"
-  type        = map(any)
-  default     = {}
-}
-
-variable "vnets_linked_to_ruleset" {
-  description = "private dns rulesets"
-  type = list(object({
-    name    = string
-    vnet_id = string
-  }))
-  default = []
-}
-
-variable "private_dns_zones" {
-  description = "private dns zones"
-  type = list(object({
-    name           = string
-    resource_group = optional(string)
-  }))
-  default = []
-}
-
-variable "config_vnet" {
-  type = object({
-    address_space = list(string)
-    subnets = optional(map(object({
-      use_azapi                                     = optional(list(bool), [false])
-      address_prefixes                              = list(string)
-      address_prefixes_v6                           = optional(list(string), [])
-      service_endpoints                             = optional(list(string), [])
-      delegate                                      = optional(list(string), [])
-      private_endpoint_network_policies             = optional(list(string), ["Disabled"]) # Enabled, Disabled, NetworkSecurityGroupEnabled, RouteTableEnabled
-      private_link_service_network_policies_enabled = optional(list(bool), [false])
-    })), {})
-    nsg_id                       = optional(string)
-    dns_servers                  = optional(list(string))
-    bgp_community                = optional(string, null)
-    ddos_protection_plan_id      = optional(string, null)
-    encryption_enabled           = optional(bool, false)
-    encryption_enforcement       = optional(string, "AllowUnencrypted") # DropUnencrypted, AllowUnencrypted
-    enable_private_dns_resolver  = optional(bool, false)
-    enable_ars                   = optional(bool, false)
-    enable_express_route_gateway = optional(bool, false)
-    nat_gateway_subnet_names     = optional(list(string), [])
-    subnet_names_private_dns     = optional(list(string), [])
-
-    enable_vnet_flow_logs           = optional(bool, false)
-    enable_vnet_flow_logs_analytics = optional(bool, true)
-
-    private_dns_inbound_subnet_name  = optional(string, null)
-    private_dns_outbound_subnet_name = optional(string, null)
-    ruleset_dns_forwarding_rules     = optional(map(any), {})
-
-    vpn_gateway_ip_config0_apipa_addresses = optional(list(string), ["169.254.21.1"])
-    vpn_gateway_ip_config1_apipa_addresses = optional(list(string), ["169.254.21.5"])
-  })
-}
-
-variable "config_s2s_vpngw" {
-  type = object({
-    enable        = optional(bool, false)
-    sku           = optional(string, "VpnGw1AZ")
-    active_active = optional(bool, true)
-
-    private_ip_address_enabled  = optional(bool, true)
-    remote_vnet_traffic_enabled = optional(bool, true)
-    virtual_wan_traffic_enabled = optional(bool, true)
-
-    ip_configuration = optional(list(object({
-      name                          = string
-      subnet_id                     = optional(string)
-      public_ip_address_name        = optional(string)
-      private_ip_address_allocation = optional(string)
-      apipa_addresses               = optional(list(string))
-      })),
-      [
-        { name = "ipconf0" },
-        { name = "ipconf1" }
-      ]
-    )
-    bgp_settings = optional(object({
-      asn = optional(string)
-    }))
-  })
-  default = {
-    enable        = false
-    sku           = "VpnGw1AZ"
-    active_active = true
-    ip_configuration = [
-      { name = "ip-config0" },
-      { name = "ip-config1" }
-    ]
-    bgp_settings = {
-      asn = 65515
-    }
-  }
-}
-
-variable "config_p2s_vpngw" {
-  type = object({
-    enable        = optional(bool, false)
-    sku           = optional(string, "VpnGw1AZ")
-    active_active = optional(bool, false)
-
-    custom_route_address_prefixes = optional(list(string), [])
-
-    vpn_client_configuration = optional(object({
-      address_space = optional(list(string))
-      clients = optional(list(object({
-        name = string
-      })))
-    }))
-
-    ip_configuration = optional(list(object({
-      name                   = string
-      public_ip_address_name = optional(string)
-    })))
-  })
-
-  default = {
-    enable = false
-    sku    = "VpnGw1AZ"
-    ip_configuration = [
-      { name = "ip-config", public_ip_address_name = null },
-    ]
-  }
-}
-
-variable "vpn_client_configuration" {
-  description = "vpn client configuration for vnet gateway"
-  type = object({
-    address_space = list(string)
-    clients = list(object({
-      name = string
-    }))
-  })
-  default = {
-    address_space = []
-    clients       = []
-  }
-}
-
-variable "config_ergw" {
-  type = object({
-    enable        = optional(bool, false)
-    sku           = optional(string, "ErGw1AZ")
-    active_active = optional(bool, false)
-  })
-  default = {
-    enable = false
-    sku    = "ErGw1AZ"
-  }
-}
-
-variable "config_firewall" {
-  type = object({
-    enable             = optional(bool, false)
-    firewall_sku       = optional(string, "Basic")
-    firewall_policy_id = optional(string, null)
-  })
-  default = {
-    enable             = false,
-    firewall_sku       = "Basic"
-    firewall_policy_id = null
-  }
-}
-
-variable "config_nva" {
-  type = object({
-    enable           = optional(bool, false)
-    enable_ipv6      = optional(bool, false)
-    type             = optional(string, "cisco")
-    ilb_untrust_ip   = optional(string)
-    ilb_trust_ip     = optional(string)
-    ilb_untrust_ipv6 = optional(string)
-    ilb_trust_ipv6   = optional(string)
-    custom_data      = optional(string)
-    scenario_option  = optional(string, "TwoNics") # Active-Active, TwoNics
-    opn_type         = optional(string, "TwoNics") # Primary, Secondary, TwoNics
-    public_ip0_name  = optional(string, null)
-    public_ip1_name  = optional(string, null)
-  })
-  default = {
-    enable           = false
-    enable_ipv6      = false
-    type             = "cisco"
-    internal_lb_addr = null
-    custom_data      = null
-    scenario_option  = "TwoNics"
-    opn_type         = "TwoNics"
-  }
-}
-
-variable "delegation" {
-  type = list(object({
-    name = string
-    service_delegation = list(object({
-      name    = string
-      actions = list(string)
-    }))
-  }))
-  default = [
-    {
-      name = "Microsoft.Web/serverFarms"
-      service_delegation = [
-        {
-          name    = "Microsoft.Web/serverFarms"
-          actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
-        }
-      ]
-    },
-    {
-      name = "Microsoft.Network/dnsResolvers"
-      service_delegation = [
-        {
-          name    = "Microsoft.Network/dnsResolvers"
-          actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
-        }
-      ]
-    }
-  ]
-}
-
-variable "user_assigned_ids" {
-  description = "resource ids of user assigned identity"
+variable "secondary_cidr_blocks" {
+  description = "List of secondary CIDR blocks to associate with the VPC to extend the IP Address pool"
   type        = list(string)
   default     = []
 }
 
-variable "nva_image" {
-  description = "source image reference"
-  type        = map(any)
-  default = {
-    "cisco" = {
-      publisher = "cisco"
-      offer     = "cisco-csr-1000v"
-      sku       = "17_3_4a-byol"
-      version   = "latest"
-    }
-    "linux" = {
-      publisher = "Canonical"
-      offer     = "0001-com-ubuntu-server-focal"
-      sku       = "20_04-lts"
-      version   = "latest"
-    }
-    "opnsense" = {
-      publisher = "thefreebsdfoundation"
-      offer     = "freebsd-13_1"
-      sku       = "13_1-release"
-      version   = "latest"
-    }
-  }
-}
-
-# parameters
-#--------------------------------------------------
-
-variable "opn_script_uri" {
-  description = "URI for Custom OPN Script and Config"
+variable "instance_tenancy" {
+  description = "A tenancy option for instances launched into the VPC"
   type        = string
-  default     = "https://raw.githubusercontent.com/kaysalawu/opnazure/master/scripts/"
+  default     = "default"
 }
 
-variable "shell_script_name" {
-  description = "Shell Script to be executed"
-  type        = string
-  default     = "configureopnsense.sh"
+variable "enable_dns_hostnames" {
+  description = "Should be true to enable DNS hostnames in the VPC"
+  type        = bool
+  default     = true
 }
 
-variable "opn_version" {
-  description = "OPN Version"
-  type        = string
-  default     = "23.7"
+variable "enable_dns_support" {
+  description = "Should be true to enable DNS support in the VPC"
+  type        = bool
+  default     = true
 }
 
-variable "walinux_version" {
-  description = "WALinuxAgent Version"
-  type        = string
-  default     = "2.9.1.1"
+variable "enable_network_address_usage_metrics" {
+  description = "Determines whether network address usage metrics are enabled for the VPC"
+  type        = bool
+  default     = null
 }
 
-variable "scenario_option" {
-  description = "scenario_option = Active-Active, TwoNics"
-  type        = string
-  default     = "TwoNics"
-}
-
-variable "opn_type" {
-  description = "opn type = Primary, Secondary, TwoNics"
-  type        = string
-  default     = "TwoNics"
-}
-
-variable "deploy_windows_mgmt" {
-  description = "deploy windows management vm in a management subnet"
+variable "use_ipam_pool" {
+  description = "Determines whether IPAM pool is used for CIDR allocation"
   type        = bool
   default     = false
 }
 
-variable "mgmt_subnet_address_prefix" {
-  description = "management subnet address prefix"
+variable "ipv4_ipam_pool_id" {
+  description = "(Optional) The ID of an IPv4 IPAM pool you want to use for allocating this VPC's CIDR"
   type        = string
-  default     = ""
+  default     = null
 }
 
-variable "trusted_subnet_address_prefix" {
-  description = "trusted subnet address prefix"
-  type        = string
-  default     = ""
+variable "ipv4_netmask_length" {
+  description = "(Optional) The netmask length of the IPv4 CIDR you want to allocate to this VPC. Requires specifying a ipv4_ipam_pool_id"
+  type        = number
+  default     = null
 }
 
 variable "enable_ipv6" {
-  description = "enable ipv6"
+  description = "Requests an Amazon-provided IPv6 CIDR block with a /56 prefix length for the VPC. You cannot specify the range of IP addresses, or the size of the CIDR block"
   type        = bool
   default     = false
 }
+
+variable "ipv6_cidr" {
+  description = "(Optional) IPv6 CIDR block to request from an IPAM Pool. Can be set explicitly or derived from IPAM using `ipv6_netmask_length`"
+  type        = string
+  default     = null
+}
+
+variable "ipv6_ipam_pool_id" {
+  description = "(Optional) IPAM Pool ID for a IPv6 pool. Conflicts with `assign_generated_ipv6_cidr_block`"
+  type        = string
+  default     = null
+}
+
+variable "ipv6_netmask_length" {
+  description = "(Optional) Netmask length to request from IPAM Pool. Conflicts with `ipv6_cidr_block`. This can be omitted if IPAM pool as a `allocation_default_netmask_length` set. Valid values: `56`"
+  type        = number
+  default     = null
+}
+
+variable "ipv6_cidr_block_network_border_group" {
+  description = "By default when an IPv6 CIDR is assigned to a VPC a default ipv6_cidr_block_network_border_group will be set to the region of the VPC. This can be changed to restrict advertisement of public addresses to specific Network Border Groups such as LocalZones"
+  type        = string
+  default     = null
+}
+
+variable "config_vpc" {
+  type = object({
+    cidr = list(string)
+    subnets = optional(map(object({
+      address_prefixes    = list(string)
+      address_prefixes_v6 = optional(list(string), [])
+    })), {})
+    # nsg_id                       = optional(string)
+    # dns_servers                  = optional(list(string))
+    # bgp_community                = optional(string, null)
+    # ddos_protection_plan_id      = optional(string, null)
+    # encryption_enabled           = optional(bool, false)
+    # encryption_enforcement       = optional(string, "AllowUnencrypted") # DropUnencrypted, AllowUnencrypted
+    # enable_private_dns_resolver  = optional(bool, false)
+    # enable_ars                   = optional(bool, false)
+    # enable_express_route_gateway = optional(bool, false)
+    # nat_gateway_subnet_names     = optional(list(string), [])
+    # subnet_names_private_dns     = optional(list(string), [])
+
+    # enable_vnet_flow_logs           = optional(bool, false)
+    # enable_vnet_flow_logs_analytics = optional(bool, true)
+
+    # private_dns_inbound_subnet_name  = optional(string, null)
+    # private_dns_outbound_subnet_name = optional(string, null)
+    # ruleset_dns_forwarding_rules     = optional(map(any), {})
+
+    # vpn_gateway_ip_config0_apipa_addresses = optional(list(string), ["169.254.21.1"])
+    # vpn_gateway_ip_config1_apipa_addresses = optional(list(string), ["169.254.21.5"])
+  })
+}
+
