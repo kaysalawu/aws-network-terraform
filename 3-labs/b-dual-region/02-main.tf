@@ -7,7 +7,7 @@ locals {
   lb_name                     = "dual-region"
   enable_onprem_wan_link      = false
   enable_diagnostics          = false
-  enable_ipv6                 = false
+  enable_ipv6                 = true
   enable_vnet_flow_logs       = false
   spoke3_storage_account_name = lower(replace("${local.spoke3_prefix}sa${random_id.random.hex}", "-", ""))
   spoke6_storage_account_name = lower(replace("${local.spoke6_prefix}sa${random_id.random.hex}", "-", ""))
@@ -60,6 +60,11 @@ data "aws_ami" "ubuntu" {
   }
 
   owners = ["099720109477"]
+}
+
+data "aws_route53_zone" "cloudtuple_public" {
+  name         = "cloudtuple.org."
+  private_zone = false
 }
 
 ####################################################
@@ -176,7 +181,7 @@ locals {
           # { name = "client2" },
         ]
       }
-      custom_route_address_prefixes = ["8.8.8.8/32"]
+      custom_route_cidr = ["8.8.8.8/32"]
     }
 
     config_ergw = {
@@ -278,7 +283,7 @@ locals {
           # { name = "client4" },
         ]
       }
-      custom_route_address_prefixes = ["8.8.8.8/32"]
+      custom_route_cidr = ["8.8.8.8/32"]
     }
 
     config_ergw = {
@@ -333,7 +338,7 @@ locals {
           { name = "client2" },
         ]
       }
-      custom_route_address_prefixes = ["8.8.8.8/32"]
+      custom_route_cidr = ["8.8.8.8/32"]
     }
 
     config_security = {
@@ -374,7 +379,7 @@ locals {
           { name = "client2" },
         ]
       }
-      custom_route_address_prefixes = ["8.8.8.8/32"]
+      custom_route_cidr = ["8.8.8.8/32"]
     }
 
     config_security = {
@@ -394,14 +399,16 @@ locals {
 ####################################################
 
 module "common" {
-  source              = "../../modules/common"
-  env                 = "common"
-  prefix              = local.prefix
-  firewall_sku        = local.firewall_sku
-  regions             = local.regions
-  private_prefixes    = local.private_prefixes
-  private_prefixes_v6 = local.private_prefixes_v6
-  tags                = {}
+  source                = "../../modules/common"
+  env                   = "common"
+  prefix                = local.prefix
+  firewall_sku          = local.firewall_sku
+  regions               = local.regions
+  private_prefixes_ipv4 = local.private_prefixes_ipv4
+  private_prefixes_ipv6 = local.private_prefixes_ipv6
+  public_key_path       = var.public_key_path
+  private_key_path      = var.private_key_path
+  tags                  = {}
 }
 
 # private dns zones
@@ -491,7 +498,7 @@ locals {
     FORWARD_ZONES        = []
     TARGETS              = local.vm_script_targets
     ACCESS_CONTROL_PREFIXES = concat(
-      local.private_prefixes,
+      local.private_prefixes_ipv4,
       ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
     )
   }
@@ -619,7 +626,7 @@ module "proxy_vm_cloud_init" {
 #   sku                      = local.firewall_sku
 
 #   private_ip_ranges = concat(
-#     local.private_prefixes,
+#     local.private_prefixes_ipv4,
 #     [
 #       local.internet_proxy,
 #     ]
@@ -691,7 +698,7 @@ locals {
     LOOPBACKS = []
 
     PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub1_nva_route_map_block_azure} deny ${local.hub1_subnets["GatewaySubnet"].address_prefixes[0]}",
+      # "ip prefix-list ${local.hub1_nva_route_map_block_azure} deny ${local.hub1_subnets["GatewaySubnet"].cidr[0]}",
       # "ip prefix-list ${local.hub1_nva_route_map_block_azure} permit 0.0.0.0/0 le 32",
     ]
 
@@ -723,7 +730,7 @@ locals {
       },
     ]
     BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub1_subnets["MainSubnet"].address_prefixes[0],
+      local.hub1_subnets["MainSubnet"].cidr[0],
       local.spoke2_cidr[0],
     ]
   }
@@ -756,7 +763,7 @@ locals {
     LOOPBACKS = []
 
     PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub2_nva_route_map_block_azure} deny ${local.hub2_subnets["GatewaySubnet"].address_prefixes[0]}",
+      # "ip prefix-list ${local.hub2_nva_route_map_block_azure} deny ${local.hub2_subnets["GatewaySubnet"].cidr[0]}",
       # "ip prefix-list ${local.hub2_nva_route_map_block_azure} permit 0.0.0.0/0 le 32",
     ]
 
@@ -788,7 +795,7 @@ locals {
       },
     ]
     BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub2_subnets["MainSubnet"].address_prefixes[0],
+      local.hub2_subnets["MainSubnet"].cidr[0],
       local.spoke5_cidr[0],
     ]
   }

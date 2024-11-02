@@ -40,15 +40,8 @@ variable "ssh_public_key" {
 }
 
 variable "cidr" {
-  description = "(Optional) The IPv4 CIDR blocks for the VPC. CIDR can be explicitly set or it can be derived from IPAM using `ipv4_netmask_length` & `ipv4_ipam_pool_id`"
+  description = "(Optional) The IPv4 CIDR block for the VPC. CIDR can be explicitly set or it can be derived from IPAM using `ipv4_netmask_length` & `ipv4_ipam_pool_id`"
   type        = list(string)
-  default     = "10.0.0.0/16"
-}
-
-variable "secondary_cidr_blocks" {
-  description = "List of secondary CIDR blocks to associate with the VPC to extend the IP Address pool"
-  type        = list(string)
-  default     = []
 }
 
 variable "instance_tenancy" {
@@ -75,8 +68,14 @@ variable "enable_network_address_usage_metrics" {
   default     = null
 }
 
-variable "use_ipam_pool" {
-  description = "Determines whether IPAM pool is used for CIDR allocation"
+variable "use_ipv4_ipam_pool" {
+  description = "Determines whether IPAM pool is used for IPv4 CIDR allocation"
+  type        = bool
+  default     = false
+}
+
+variable "use_ipv6_ipam_pool" {
+  description = "Determines whether IPAM pool is used for IPv6 CIDR allocation"
   type        = bool
   default     = false
 }
@@ -101,7 +100,7 @@ variable "enable_ipv6" {
 
 variable "ipv6_cidr" {
   description = "(Optional) IPv6 CIDR block to request from an IPAM Pool. Can be set explicitly or derived from IPAM using `ipv6_netmask_length`"
-  type        = string
+  type        = list(string)
   default     = null
 }
 
@@ -123,34 +122,53 @@ variable "ipv6_cidr_block_network_border_group" {
   default     = null
 }
 
-variable "config_vpc" {
+variable "dhcp_options" {
+  description = "A map of DHCP options to assign to the VPC"
   type = object({
-    cidr = list(string)
-    subnets = optional(map(object({
-      address_prefixes    = list(string)
-      address_prefixes_v6 = optional(list(string), [])
-    })), {})
-    # nsg_id                       = optional(string)
-    # dns_servers                  = optional(list(string))
-    # bgp_community                = optional(string, null)
-    # ddos_protection_plan_id      = optional(string, null)
-    # encryption_enabled           = optional(bool, false)
-    # encryption_enforcement       = optional(string, "AllowUnencrypted") # DropUnencrypted, AllowUnencrypted
-    # enable_private_dns_resolver  = optional(bool, false)
-    # enable_ars                   = optional(bool, false)
-    # enable_express_route_gateway = optional(bool, false)
-    # nat_gateway_subnet_names     = optional(list(string), [])
-    # subnet_names_private_dns     = optional(list(string), [])
+    enable              = optional(bool, false)
+    domain_name         = optional(string, null)
+    domain_name_servers = optional(list(string), ["AmazonProvidedDNS"])
+    ntp_servers         = optional(list(string), null)
+  })
+  default = {
+    domain_name_servers = ["AmazonProvidedDNS", ]
+  }
+}
 
-    # enable_vnet_flow_logs           = optional(bool, false)
-    # enable_vnet_flow_logs_analytics = optional(bool, true)
+variable "subnets" {
+  description = "A map of subnet configurations"
+  type = map(object({
+    cidr         = string
+    ipv6_cidr    = optional(string)
+    ipv6_newbits = optional(number, 8)
+    ipv6_netnum  = optional(string, 0)
+    az           = optional(string, "a")
+    type         = optional(string, "private")
 
-    # private_dns_inbound_subnet_name  = optional(string, null)
-    # private_dns_outbound_subnet_name = optional(string, null)
-    # ruleset_dns_forwarding_rules     = optional(map(any), {})
+    map_public_ip_on_launch = optional(bool, true)
+  }))
+  default = {}
+}
 
-    # vpn_gateway_ip_config0_apipa_addresses = optional(list(string), ["169.254.21.1"])
-    # vpn_gateway_ip_config1_apipa_addresses = optional(list(string), ["169.254.21.5"])
+variable "bastion_config" {
+  description = "A map of bastion configuration"
+  type = object({
+    enable               = bool
+    instance_type        = optional(string, "t2.micro")
+    key_name             = string
+    private_ip           = optional(string, null)
+    iam_instance_profile = optional(string, null)
   })
 }
 
+variable "private_dns_zone_name" {
+  description = "The name of the private DNS zone to associate with the VPC"
+  type        = string
+  default     = null
+}
+
+variable "public_dns_zone_name" {
+  description = "The name of the public DNS zone to associate with the VPC"
+  type        = string
+  default     = null
+}
