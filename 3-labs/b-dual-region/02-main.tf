@@ -453,23 +453,21 @@ locals {
 
   init_dir = "/var/lib/azure"
   vm_script_targets_region1 = [
-    { name = "branch1", dns = lower(local.branch1_vm_fqdn), ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
-    { name = "hub1   ", dns = lower(local.hub1_vm_fqdn), ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
-    { name = "hub1-spoke3-pep", dns = lower(local.hub1_spoke3_pep_fqdn), ping = false, probe = true },
-    { name = "spoke1 ", dns = lower(local.spoke1_vm_fqdn), ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
-    { name = "spoke2 ", dns = lower(local.spoke2_vm_fqdn), ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
+    { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
+    { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
+    { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
+    { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
+    { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
   ]
   vm_script_targets_region2 = [
-    { name = "branch3", dns = lower(local.branch3_vm_fqdn), ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
-    { name = "hub2   ", dns = lower(local.hub2_vm_fqdn), ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
-    { name = "hub2-spoke6-pep", dns = lower(local.hub2_spoke6_pep_fqdn), ping = false, probe = true },
-    { name = "spoke4 ", dns = lower(local.spoke4_vm_fqdn), ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
-    { name = "spoke5 ", dns = lower(local.spoke5_vm_fqdn), ipv4 = local.spoke5_vm_addr, ipv6 = local.spoke5_vm_addr_v6, probe = true },
+    { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
+    { name = "hub2   ", host = local.hub2_vm_fqdn, ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
+    { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
+    { name = "spoke4 ", host = local.spoke4_vm_fqdn, ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
+    { name = "spoke5 ", host = local.spoke5_vm_fqdn, ipv4 = local.spoke5_vm_addr, ipv6 = local.spoke5_vm_addr_v6, probe = true },
   ]
   vm_script_targets_misc = [
-    { name = "internet", dns = "icanhazip.com", ipv4 = "icanhazip.com", ipv6 = "icanhazip.com" },
-    { name = "hub1-spoke3-blob", dns = local.spoke3_blob_url, ping = false, probe = true },
-    { name = "hub2-spoke6-blob", dns = local.spoke6_blob_url, ping = false, probe = true },
+    { name = "internet", host = "icanhazip.com" },
   ]
   vm_script_targets = concat(
     local.vm_script_targets_region1,
@@ -485,7 +483,7 @@ locals {
   probe_init_vars = {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = local.vm_script_targets
-    TARGETS_HEAVY_TRAFFIC_GEN = [for target in local.vm_script_targets : target.dns if try(target.probe, false)]
+    TARGETS_HEAVY_TRAFFIC_GEN = [for target in local.vm_script_targets : target.host if try(target.probe, false)]
   }
   vm_init_vars = {
     TARGETS                   = local.vm_script_targets
@@ -503,34 +501,15 @@ locals {
     )
   }
   vm_init_files = {
-    "${local.init_dir}/fastapi/docker-compose-app1-80.yml"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-app1-80.yml", {}) }
-    "${local.init_dir}/fastapi/docker-compose-app2-8080.yml" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-app2-8080.yml", {}) }
-    "${local.init_dir}/fastapi/app/app/Dockerfile"           = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/app/app/Dockerfile", {}) }
-    "${local.init_dir}/fastapi/app/app/_app.py"              = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/app/app/_app.py", {}) }
-    "${local.init_dir}/fastapi/app/app/main.py"              = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/app/app/main.py", {}) }
-    "${local.init_dir}/fastapi/app/app/requirements.txt"     = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/app/app/requirements.txt", {}) }
+    "${local.init_dir}/fastapi/docker-compose-http-80.yml"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-80.yml", {}) }
+    "${local.init_dir}/fastapi/docker-compose-http-8080.yml" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-8080.yml", {}) }
   }
   vm_startup_init_files = {
     "${local.init_dir}/init/startup.sh" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/startup.sh", local.vm_init_vars) }
+    "usr/local/bin/targets.json"        = { owner = "root", permissions = "0744", content = jsonencode(local.vm_script_targets) }
   }
   probe_startup_init_files = {
     "${local.init_dir}/init/startup.sh" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/startup.sh", local.probe_init_vars) }
-  }
-  proxy_startup_files = {
-    "${local.init_dir}/unbound/Dockerfile"         = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/unbound/Dockerfile", {}) }
-    "${local.init_dir}/unbound/docker-compose.yml" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/unbound/docker-compose.yml", {}) }
-    "${local.init_dir}/unbound/setup-unbound.sh"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/unbound/setup-unbound.sh", local.proxy_init_vars) }
-    "/etc/unbound/unbound.conf"                    = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/unbound/unbound.conf", local.proxy_init_vars) }
-
-    "${local.init_dir}/squid/docker-compose.yml" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/squid/docker-compose.yml", local.proxy_init_vars) }
-    "${local.init_dir}/squid/setup-squid.sh"     = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/squid/setup-squid.sh", local.proxy_init_vars) }
-    "/etc/squid/blocked_sites"                   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/squid/blocked_sites", local.proxy_init_vars) }
-    "/etc/squid/squid.conf"                      = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/squid/squid.conf", local.proxy_init_vars) }
-  }
-  service_crawler_files = {
-    "${local.init_dir}/crawler/app/crawler.sh"       = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/crawler/app/crawler.sh", {}) }
-    "${local.init_dir}/crawler/app/service_tags.py"  = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/crawler/app/service_tags.py", {}) }
-    "${local.init_dir}/crawler/app/requirements.txt" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/crawler/app/requirements.txt", {}) }
   }
   onprem_local_records = [
     { name = lower(local.branch1_vm_fqdn), rdata = local.branch1_vm_addr, ttl = "300", type = "A" },
@@ -550,12 +529,12 @@ module "vm_cloud_init" {
     local.vm_startup_init_files
   )
   packages = [
-    "docker.io", "docker-compose", #npm,
+    "docker.io", "docker-compose",
   ]
   run_commands = [
     "bash ${local.init_dir}/init/startup.sh",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-app1-80.yml up -d",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-app2-8080.yml up -d",
+    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
   ]
 }
 
@@ -570,38 +549,8 @@ module "probe_vm_cloud_init" {
   ]
   run_commands = [
     "bash ${local.init_dir}/init/startup.sh",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-app1-80.yml up -d",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-app2-8080.yml up -d",
-  ]
-}
-
-module "proxy_vm_cloud_init" {
-  source   = "../../modules/cloud-config-gen"
-  files    = local.proxy_startup_files
-  packages = ["docker.io", "docker-compose", ]
-  run_commands = [
-    "sysctl -w net.ipv4.ip_forward=1",
-    "sysctl -w net.ipv4.conf.eth0.disable_xfrm=1",
-    "sysctl -w net.ipv4.conf.eth0.disable_policy=1",
-    "echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf",
-    "sysctl -w net.ipv6.conf.all.forwarding=1",
-    "echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf",
-    "sysctl -p",
-    "echo iptables-persistent iptables-persistent/autosave_v4 boolean false | debconf-set-selections",
-    "echo iptables-persistent iptables-persistent/autosave_v6 boolean false | debconf-set-selections",
-    "apt-get -y install iptables-persistent",
-    "iptables -P FORWARD ACCEPT",
-    "iptables -P INPUT ACCEPT",
-    "iptables -P OUTPUT ACCEPT",
-    "iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT",
-    "iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT",
-    "iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT",
-    "iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
-    ". ${local.init_dir}/init/startup.sh",
-    ". ${local.init_dir}/unbound/setup-unbound.sh",
-    ". ${local.init_dir}/squid/setup-squid.sh",
-    "docker-compose -f ${local.init_dir}/unbound/docker-compose.yml up -d",
-    "docker-compose -f ${local.init_dir}/squid/docker-compose.yml up -d",
+    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
   ]
 }
 

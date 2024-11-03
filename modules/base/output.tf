@@ -1,12 +1,36 @@
 
-output "bastion_pub_sg" {
-  value = aws_security_group.bastion_pub_sg.id
+output "vpc_id" {
+  value = aws_vpc.this.id
 }
 
-output "nva_pub_sg" {
-  value = aws_security_group.bastion_pub_sg.id
+output "vpc_cidr_block" {
+  value = aws_vpc.this.cidr_block
 }
 
-output "ec2_prv_sg" {
-  value = aws_security_group.ec2_prv_sg.id
+output "additional_cidr_blocks" {
+  value = aws_vpc_ipv4_cidr_block_association.this[*].cidr_block
+}
+
+output "vpc_ipv6_cidr_block" {
+  value = aws_vpc.this.ipv6_cidr_block
+}
+
+output "bastion_security_group_id" {
+  value = aws_security_group.bastion_sg.id
+}
+
+output "nva_security_group_id" {
+  value = aws_security_group.bastion_sg.id
+}
+
+output "ec2_security_group_id" {
+  value = aws_security_group.ec2_sg.id
+}
+
+output "public_subnet_ids" {
+  value = { for k, v in aws_subnet.public : k => v.id }
+}
+
+output "private_subnet_ids" {
+  value = { for k, v in aws_subnet.private : k => v.id }
 }

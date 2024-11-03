@@ -34,8 +34,6 @@ module "branch1" {
   ]
 }
 
-
-
 resource "time_sleep" "branch1" {
   create_duration = "90s"
   depends_on = [
@@ -47,42 +45,86 @@ resource "time_sleep" "branch1" {
 # dns
 ####################################################
 
-# locals {
-#   branch1_unbound_startup = templatefile("../../scripts/unbound/unbound.sh", local.branch1_dns_vars)
-#   branch1_dns_vars = {
-#     ONPREM_LOCAL_RECORDS = local.onprem_local_records
-#     REDIRECTED_HOSTS     = local.onprem_redirected_hosts
-#     FORWARD_ZONES        = local.branch1_forward_zones
-#     TARGETS              = local.vm_script_targets
-#     ACCESS_CONTROL_PREFIXES = concat(
-#       local.private_prefixes_ipv4,
-#       ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
-#     )
-#   }
-#   branch1_forward_zones = [
-#     { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "${local.region2_dns_zone}.", targets = [local.hub2_dns_in_addr, ] },
-#     { zone = "privatelink.blob.core.windows.net.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "privatelink.azurewebsites.net.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "privatelink.database.windows.net.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "privatelink.table.cosmos.azure.com.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "privatelink.queue.core.windows.net.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = "privatelink.file.core.windows.net.", targets = [local.hub1_dns_in_addr, ] },
-#     { zone = ".", targets = [local.amazon_dns_ipv4, ] },
-#   ]
-# }
+locals {
+  branch1_unbound_startup = templatefile("../../scripts/unbound/unbound.sh", local.branch1_dns_vars)
+  branch1_dns_vars = {
+    HOSTNAME             = "${local.branch1_prefix}dns"
+    ONPREM_LOCAL_RECORDS = local.onprem_local_records
+    REDIRECTED_HOSTS     = local.onprem_redirected_hosts
+    FORWARD_ZONES        = local.branch1_forward_zones
+    TARGETS              = local.vm_script_targets
+    ACCESS_CONTROL_PREFIXES = concat(
+      local.private_prefixes_ipv4,
+      ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
+    )
+  }
+  branch1_forward_zones = [
+    { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr, ] },
+    { zone = "${local.region2_dns_zone}.", targets = [local.hub2_dns_in_addr, ] },
+    { zone = ".", targets = [local.amazon_dns_ipv4, ] },
+  ]
+}
 
-# module "branch1_dns" {
-#   source                 = "terraform-aws-modules/ec2-instance/aws"
-#   name                   = "${local.branch1_prefix}dns"
-#   instance_type          = local.vmsize
-#   key_name               = module.common.key_pair_name
-#   monitoring             = true
-#   vpc_security_group_ids = ["sg-12345678"]
-#   subnet_id              = "subnet-eddcdzz4"
+resource "aws_instance" "branch1_dns" {
+  instance_type          = local.vmsize
+  availability_zone      = "${local.branch1_region}a"
+  ami                    = data.aws_ami.ubuntu.id
+  key_name               = module.common.key_pair_name[local.branch1_region]
+  vpc_security_group_ids = [module.branch1.ec2_security_group_id, ]
+  iam_instance_profile   = module.common.iam_instance_profile.name
+  subnet_id              = module.branch1.private_subnet_ids["MainSubnet"]
+  private_ip             = local.branch1_dns_addr
+  ipv6_address_count     = local.enable_ipv6 ? 1 : 0
+  user_data              = base64encode(local.branch1_unbound_startup)
 
-#   tags = {
-#     Terraform   = "true"
-#     Environment = "dev"
-#   }
-# }
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+  tags = merge(local.branch1_tags,
+    {
+      Name = "${local.branch1_prefix}dns"
+    }
+  )
+}
+
+####################################################
+# workload
+####################################################
+
+resource "aws_instance" "branch1_vm" {
+  instance_type          = local.vmsize
+  availability_zone      = "${local.branch1_region}a"
+  ami                    = data.aws_ami.ubuntu.id
+  key_name               = module.common.key_pair_name[local.branch1_region]
+  vpc_security_group_ids = [module.branch1.ec2_security_group_id, ]
+  iam_instance_profile   = module.common.iam_instance_profile.name
+  subnet_id              = module.branch1.private_subnet_ids["MainSubnet"]
+  private_ip             = local.branch1_vm_addr
+  ipv6_address_count     = local.enable_ipv6 ? 1 : 0
+  user_data              = base64encode(module.vm_cloud_init.cloud_config)
+
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+  tags = merge(local.branch1_tags,
+    {
+      Name = "${local.branch1_prefix}vm"
+    }
+  )
+}
+
+####################################################
+# output files
+####################################################
+
+locals {
+  branch1_files = {
+    "output/branch1Dns.sh" = local.branch1_unbound_startup
+  }
+}
+
+resource "local_file" "branch1_files" {
+  for_each = local.branch1_files
+  filename = each.key
+  content  = each.value
+}

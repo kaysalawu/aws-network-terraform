@@ -161,6 +161,12 @@ variable "bastion_config" {
   })
 }
 
+variable "create_private_dns_zone" {
+  description = "Should be true to create a private DNS zone for the VPC"
+  type        = bool
+  default     = false
+}
+
 variable "private_dns_zone_name" {
   description = "The name of the private DNS zone to associate with the VPC"
   type        = string

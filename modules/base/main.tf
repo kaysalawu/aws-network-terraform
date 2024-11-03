@@ -150,13 +150,13 @@ resource "aws_subnet" "private" {
 
 # security group
 
-resource "aws_security_group" "bastion_pub_sg" {
-  name   = "${local.prefix}bastion-pub-sg"
+resource "aws_security_group" "bastion_sg" {
+  name   = "${local.prefix}bastion-sg"
   vpc_id = aws_vpc.this.id
 
   tags = merge(var.tags,
     {
-      Name  = "${local.prefix}bastion-pub-sg"
+      Name  = "${local.prefix}bastion-sg"
       Scope = "public"
     }
   )
@@ -171,7 +171,7 @@ resource "aws_security_group_rule" "bastion_ssh_ingress" {
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_pub_sg.id
+  security_group_id = aws_security_group.bastion_sg.id
 }
 
 # icmp ingress
@@ -183,7 +183,7 @@ resource "aws_security_group_rule" "bastion_icmp_ingress" {
   protocol          = "icmp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_pub_sg.id
+  security_group_id = aws_security_group.bastion_sg.id
 }
 
 # traceroute ingress
@@ -195,7 +195,7 @@ resource "aws_security_group_rule" "bastion_traceroute_ingress" {
   protocol          = "udp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_pub_sg.id
+  security_group_id = aws_security_group.bastion_sg.id
 }
 
 # all egress
@@ -207,18 +207,18 @@ resource "aws_security_group_rule" "bastion_egress" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_pub_sg.id
+  security_group_id = aws_security_group.bastion_sg.id
 }
 
 # ec2
 #--------------------------
 
-resource "aws_security_group" "ec2_prv_sg" {
-  name   = "${local.prefix}ec2-prv-sg"
+resource "aws_security_group" "ec2_sg" {
+  name   = "${local.prefix}ec2-sg"
   vpc_id = aws_vpc.this.id
 
   tags = {
-    Name  = "${local.prefix}ec2-prv-sg"
+    Name  = "${local.prefix}ec2-sg"
     Scope = "private"
   }
 }
@@ -232,7 +232,7 @@ resource "aws_security_group_rule" "ec2_prv_icmp_ingress" {
   protocol          = "icmp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_prv_sg.id
+  security_group_id = aws_security_group.ec2_sg.id
 }
 
 resource "aws_security_group_rule" "ec2_prv_traceroute_ingress" {
@@ -242,7 +242,7 @@ resource "aws_security_group_rule" "ec2_prv_traceroute_ingress" {
   protocol          = "udp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_prv_sg.id
+  security_group_id = aws_security_group.ec2_sg.id
 }
 
 # bastion ingress
@@ -252,8 +252,8 @@ resource "aws_security_group_rule" "ec2_prv_bastion_ingress" {
   from_port                = "0"
   to_port                  = "0"
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.bastion_pub_sg.id
-  security_group_id        = aws_security_group.ec2_prv_sg.id
+  source_security_group_id = aws_security_group.bastion_sg.id
+  security_group_id        = aws_security_group.ec2_sg.id
 }
 
 # dns ingress (for bind server)
@@ -265,7 +265,7 @@ resource "aws_security_group_rule" "ec2_prv_tcp_dns_ingress" {
   protocol          = "tcp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_prv_sg.id
+  security_group_id = aws_security_group.ec2_sg.id
 }
 
 resource "aws_security_group_rule" "ec2_prv_udp_dns_ingress" {
@@ -275,7 +275,7 @@ resource "aws_security_group_rule" "ec2_prv_udp_dns_ingress" {
   protocol          = "udp"
   cidr_blocks       = local.private_prefixes
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_prv_sg.id
+  security_group_id = aws_security_group.ec2_sg.id
 }
 
 # egress
@@ -287,7 +287,7 @@ resource "aws_security_group_rule" "ec2_prv_egress" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_prv_sg.id
+  security_group_id = aws_security_group.ec2_sg.id
 }
 
 # nva
@@ -295,13 +295,13 @@ resource "aws_security_group_rule" "ec2_prv_egress" {
 
 # security group
 
-resource "aws_security_group" "nva_pub_sg" {
-  name   = "${local.prefix}nva-pub-sg"
+resource "aws_security_group" "nva_sg" {
+  name   = "${local.prefix}nva-sg"
   vpc_id = aws_vpc.this.id
 
   tags = merge(var.tags,
     {
-      Name  = "${local.prefix}nva-pub-sg"
+      Name  = "${local.prefix}nva-sg"
       Scope = "public"
     }
   )
@@ -316,7 +316,7 @@ resource "aws_security_group_rule" "nva_ssh_ingress" {
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_pub_sg.id
+  security_group_id = aws_security_group.nva_sg.id
 }
 
 # bastion ingress
@@ -326,8 +326,8 @@ resource "aws_security_group_rule" "bastion_ingress" {
   from_port                = "0"
   to_port                  = "0"
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.bastion_pub_sg.id
-  security_group_id        = aws_security_group.nva_pub_sg.id
+  source_security_group_id = aws_security_group.bastion_sg.id
+  security_group_id        = aws_security_group.nva_sg.id
 }
 
 # ike ingress
@@ -339,7 +339,7 @@ resource "aws_security_group_rule" "nva_udp_500_ingress" {
   protocol          = "udp"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_pub_sg.id
+  security_group_id = aws_security_group.nva_sg.id
 }
 
 # nat-t ingress
@@ -351,7 +351,7 @@ resource "aws_security_group_rule" "nva_udp_4500_ingress" {
   protocol          = "udp"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_pub_sg.id
+  security_group_id = aws_security_group.nva_sg.id
 }
 
 # nva ingress
@@ -361,8 +361,8 @@ resource "aws_security_group_rule" "nva_ingress" {
   from_port                = 0
   to_port                  = 0
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.nva_pub_sg.id
-  security_group_id        = aws_security_group.nva_pub_sg.id
+  source_security_group_id = aws_security_group.nva_sg.id
+  security_group_id        = aws_security_group.nva_sg.id
 }
 
 # ec2 ingress
@@ -372,8 +372,8 @@ resource "aws_security_group_rule" "vpc_ec2_ingress" {
   from_port                = 0
   to_port                  = 0
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.ec2_prv_sg.id
-  security_group_id        = aws_security_group.nva_pub_sg.id
+  source_security_group_id = aws_security_group.ec2_sg.id
+  security_group_id        = aws_security_group.nva_sg.id
 }
 
 # egress
@@ -385,7 +385,7 @@ resource "aws_security_group_rule" "nva_egress" {
   protocol          = "-1"
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_pub_sg.id
+  security_group_id = aws_security_group.nva_sg.id
 }
 
 ####################################################
@@ -658,6 +658,23 @@ resource "aws_route" "private_internet_route_c" {
 }
 
 ####################################################
+# private dns
+####################################################
+
+# dns zone
+
+resource "aws_route53_zone" "private" {
+  count = var.create_private_dns_zone && var.private_dns_zone_name != null ? 1 : 0
+  name  = var.private_dns_zone_name
+  vpc {
+    vpc_id = aws_vpc.this.id
+  }
+}
+
+# association
+
+
+####################################################
 # bastion
 ####################################################
 
@@ -670,17 +687,16 @@ resource "aws_instance" "bastion" {
   availability_zone           = "${var.region}a"
   ami                         = data.aws_ami.ubuntu.id
   key_name                    = var.bastion_config.key_name
-  vpc_security_group_ids      = [aws_security_group.bastion_pub_sg.id, ]
+  vpc_security_group_ids      = [aws_security_group.bastion_sg.id, ]
   iam_instance_profile        = var.bastion_config.iam_instance_profile
   subnet_id                   = aws_subnet.public["UntrustSubnet"].id
   private_ip                  = var.bastion_config.private_ip
   ipv6_address_count          = var.enable_ipv6 ? 1 : 0
   associate_public_ip_address = true
 
-  user_data = templatefile("${path.module}/scripts/bastion.sh", {
-    HOSTNAME = "${local.prefix}bastion"
-  })
-
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
   tags = merge(var.tags,
     {
       Name  = "${local.prefix}bastion"
