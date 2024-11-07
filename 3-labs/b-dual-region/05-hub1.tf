@@ -25,9 +25,9 @@ module "hub1" {
   create_private_dns_zone = true
 
   private_dns_zone_vpc_associations = [
-    # module.spoke1.vpc_id,
-    # module.spoke2.vpc_id,
-    # module.spoke3.vpc_id,
+    module.spoke1.vpc_id,
+    module.spoke2.vpc_id,
+    module.spoke3.vpc_id,
   ]
 
   bastion_config = {

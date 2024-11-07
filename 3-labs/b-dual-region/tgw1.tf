@@ -20,21 +20,31 @@ module "tgw1" {
       # ipv6_support = true
       # transit_gateway_default_route_table_association = false
       # transit_gateway_default_route_table_propagation = false
-      tgw_routes = [
-        { destination_cidr_block = "30.0.0.0/16" },
-        { destination_cidr_block = "0.0.0.0/0", blackhole = true }
-      ]
+      # tgw_routes = [
+      #   { destination_cidr_block = "30.0.0.0/16" },
+      #   { destination_cidr_block = "0.0.0.0/0", blackhole = true }
+      # ]
       tags = { Name = "hub1" }
     },
     (module.spoke1.vpc_name) = {
       vpc_id     = module.spoke1.vpc_id
       subnet_ids = [module.spoke1.private_subnet_ids["ManagementSubnet"], ]
 
-      tgw_routes = [
-        { destination_cidr_block = "50.0.0.0/16" },
-        { destination_cidr_block = "10.10.10.10/32", blackhole = true }
-      ]
+      # tgw_routes = [
+      #   { destination_cidr_block = "50.0.0.0/16" },
+      #   { destination_cidr_block = "10.10.10.10/32", blackhole = true }
+      # ]
       tags = { Name = "spoke1" }
+    },
+    (module.spoke1.vpc_name) = {
+      vpc_id     = module.spoke1.vpc_id
+      subnet_ids = [module.spoke1.private_subnet_ids["ManagementSubnet"], ]
+      tags       = { Name = "spoke1" }
+    },
+    (module.spoke2.vpc_name) = {
+      vpc_id     = module.spoke2.vpc_id
+      subnet_ids = [module.spoke2.private_subnet_ids["ManagementSubnet"], ]
+      tags       = { Name = "spoke1" }
     },
   }
 
