@@ -3,18 +3,12 @@
 ####################################################
 
 locals {
-  prefix                      = "b"
-  lb_name                     = "dual-region"
-  enable_onprem_wan_link      = false
-  enable_diagnostics          = false
-  enable_ipv6                 = true
-  enable_vnet_flow_logs       = false
-  spoke3_storage_account_name = lower(replace("${local.spoke3_prefix}sa${random_id.random.hex}", "-", ""))
-  spoke6_storage_account_name = lower(replace("${local.spoke6_prefix}sa${random_id.random.hex}", "-", ""))
-  spoke3_blob_url             = "https://${local.spoke3_storage_account_name}.blob.core.windows.net/spoke3/spoke3.txt"
-  spoke6_blob_url             = "https://${local.spoke6_storage_account_name}.blob.core.windows.net/spoke6/spoke6.txt"
-  spoke3_apps_fqdn            = lower("${local.spoke3_prefix}${random_id.random.hex}.azurewebsites.net")
-  spoke6_apps_fqdn            = lower("${local.spoke6_prefix}${random_id.random.hex}.azurewebsites.net")
+  prefix                 = "b"
+  lb_name                = "dual-region"
+  enable_onprem_wan_link = false
+  enable_diagnostics     = false
+  enable_ipv6            = false
+  enable_vnet_flow_logs  = false
 
   hub1_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "hub" }
   hub2_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "hub" }
@@ -27,6 +21,8 @@ locals {
   spoke4_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
   spoke5_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
   spoke6_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "float" }
+  tgw1_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "tgw" }
+  tgw2_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "tgw" }
 }
 
 resource "random_id" "random" {
@@ -62,7 +58,7 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"]
 }
 
-data "aws_route53_zone" "cloudtuple_public" {
+data "aws_route53_zone" "public" {
   name         = "cloudtuple.org."
   private_zone = false
 }
@@ -105,292 +101,40 @@ locals {
     { name = "spoke5v6", address_prefix = [local.spoke5_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
   ])
 
-  firewall_sku = "Basic"
-
   hub1_features = {
-    config_vnet = {
-      bgp_community               = local.hub1_bgp_community
-      address_space               = local.hub1_cidr
-      subnets                     = local.hub1_subnets
-      enable_private_dns_resolver = true
-      enable_ars                  = false
-      enable_vnet_flow_logs       = local.enable_vnet_flow_logs
-      nat_gateway_subnet_names = [
-        "MainSubnet",
-        "TrustSubnet",
-        "TestSubnet",
-      ]
-
-      ruleset_dns_forwarding_rules = {
-        "onprem" = {
-          domain = local.onprem_domain
-          target_dns_servers = [
-            { ip_address = local.branch1_dns_addr, port = 53 },
-            { ip_address = local.branch3_dns_addr, port = 53 },
-          ]
-        }
-        "${local.region1_code}" = {
-          domain = local.region1_dns_zone
-          target_dns_servers = [
-            { ip_address = local.hub1_dns_in_addr, port = 53 },
-          ]
-        }
-        "${local.region2_code}" = {
-          domain = local.region2_dns_zone
-          target_dns_servers = [
-            { ip_address = local.hub1_dns_in_addr, port = 53 },
-          ]
-        }
-        "azurewebsites.net" = {
-          domain = "privatelink.azurewebsites.net"
-          target_dns_servers = [
-            { ip_address = local.hub1_dns_in_addr, port = 53 },
-          ]
-        }
-        "blob.core.windows.net" = {
-          domain = "privatelink.blob.core.windows.net"
-          target_dns_servers = [
-            { ip_address = local.hub1_dns_in_addr, port = 53 },
-          ]
-        }
-      }
-    }
-
-    config_s2s_vpngw = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      ip_configuration = [
-        #{ name = "ipconf0", public_ip_address_name = azurerm_public_ip.hub1_s2s_vpngw_pip0.name, apipa_addresses = ["169.254.21.1"] },
-        #{ name = "ipconf1", public_ip_address_name = azurerm_public_ip.hub1_s2s_vpngw_pip1.name, apipa_addresses = ["169.254.21.5"] }
-      ]
-      bgp_settings = {
-        asn = local.hub1_vpngw_asn
-      }
-    }
-
-    config_p2s_vpngw = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      ip_configuration = [
-        #{ name = "ipconf", public_ip_address_name = azurerm_public_ip.hub1_p2s_vpngw_pip.name }
-      ]
-      vpn_client_configuration = {
-        address_space = ["192.168.0.0/24"]
-        clients = [
-          # { name = "client1" },
-          # { name = "client2" },
-        ]
-      }
-      custom_route_cidr = ["8.8.8.8/32"]
-    }
-
-    config_ergw = {
-      enable = false
-      sku    = "ErGw1AZ"
-    }
-
-    config_firewall = {
-      enable       = false
-      firewall_sku = local.firewall_sku
-      # firewall_policy_id = azurerm_firewall_policy.firewall_policy["region1"].id
-    }
-
     config_nva = {
-      enable           = true
-      enable_ipv6      = local.enable_ipv6
-      type             = "linux"
-      scenario_option  = "TwoNics"
-      opn_type         = "TwoNics"
-      custom_data      = base64encode(local.hub1_linux_nva_init)
-      ilb_untrust_ip   = local.hub1_nva_ilb_untrust_addr
-      ilb_trust_ip     = local.hub1_nva_ilb_trust_addr
-      ilb_untrust_ipv6 = local.hub1_nva_ilb_untrust_addr_v6
-      ilb_trust_ipv6   = local.hub1_nva_ilb_trust_addr_v6
+      # enable           = true
+      # enable_ipv6      = local.enable_ipv6
+      # type             = "linux"
+      # scenario_option  = "TwoNics"
+      # opn_type         = "TwoNics"
+      # custom_data      = base64encode(local.hub1_linux_nva_init)
+      # ilb_untrust_ip   = local.hub1_nva_ilb_untrust_addr
+      # ilb_trust_ip     = local.hub1_nva_ilb_trust_addr
+      # ilb_untrust_ipv6 = local.hub1_nva_ilb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub1_nva_ilb_trust_addr_v6
     }
   }
 
   hub2_features = {
-    config_vnet = {
-      bgp_community               = local.hub2_bgp_community
-      address_space               = local.hub2_cidr
-      subnets                     = local.hub2_subnets
-      enable_private_dns_resolver = true
-      enable_ars                  = false
-      enable_vnet_flow_logs       = local.enable_vnet_flow_logs
-      nat_gateway_subnet_names = [
-        "MainSubnet",
-        "TrustSubnet",
-        "TestSubnet",
-      ]
-
-      ruleset_dns_forwarding_rules = {
-        "onprem" = {
-          domain = local.onprem_domain
-          target_dns_servers = [
-            { ip_address = local.branch3_dns_addr, port = 53 },
-            { ip_address = local.branch1_dns_addr, port = 53 },
-          ]
-        }
-        "${local.region1_code}" = {
-          domain = local.region1_dns_zone
-          target_dns_servers = [
-            { ip_address = local.hub2_dns_in_addr, port = 53 },
-          ]
-        }
-        "${local.region2_code}" = {
-          domain = local.region2_dns_zone
-          target_dns_servers = [
-            { ip_address = local.hub2_dns_in_addr, port = 53 },
-          ]
-        }
-        "azurewebsites.net" = {
-          domain = "privatelink.azurewebsites.net"
-          target_dns_servers = [
-            { ip_address = local.hub2_dns_in_addr, port = 53 },
-          ]
-        }
-        "blob.core.windows.net" = {
-          domain = "privatelink.blob.core.windows.net"
-          target_dns_servers = [
-            { ip_address = local.hub2_dns_in_addr, port = 53 },
-          ]
-        }
-      }
-    }
-
-    config_s2s_vpngw = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      ip_configuration = [
-        #{ name = "ipconf0", public_ip_address_name = azurerm_public_ip.hub2_s2s_vpngw_pip0.name, apipa_addresses = ["169.254.21.1"] },
-        #{ name = "ipconf1", public_ip_address_name = azurerm_public_ip.hub2_s2s_vpngw_pip1.name, apipa_addresses = ["169.254.21.5"] }
-      ]
-      bgp_settings = {
-        asn = local.hub2_vpngw_asn
-      }
-    }
-
-    config_p2s_vpngw = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      ip_configuration = [
-        #{ name = "ipconf", public_ip_address_name = azurerm_public_ip.hub2_p2s_vpngw_pip.name },
-      ]
-      vpn_client_configuration = {
-        address_space = ["192.168.1.0/24"]
-        clients = [
-          # { name = "client3" },
-          # { name = "client4" },
-        ]
-      }
-      custom_route_cidr = ["8.8.8.8/32"]
-    }
-
-    config_ergw = {
-      enable = false
-      sku    = "ErGw1AZ"
-    }
-
-    config_firewall = {
-      enable       = false
-      firewall_sku = local.firewall_sku
-      # firewall_policy_id = azurerm_firewall_policy.firewall_policy["region2"].id
-    }
-
     config_nva = {
-      enable           = true
-      enable_ipv6      = local.enable_ipv6
-      type             = "linux"
-      scenario_option  = "TwoNics"
-      opn_type         = "TwoNics"
-      custom_data      = base64encode(local.hub2_linux_nva_init)
-      ilb_untrust_ip   = local.hub2_nva_ilb_untrust_addr
-      ilb_trust_ip     = local.hub2_nva_ilb_trust_addr
-      ilb_untrust_ipv6 = local.hub2_nva_ilb_untrust_addr_v6
-      ilb_trust_ipv6   = local.hub2_nva_ilb_trust_addr_v6
+      # enable           = true
+      # enable_ipv6      = local.enable_ipv6
+      # type             = "linux"
+      # scenario_option  = "TwoNics"
+      # opn_type         = "TwoNics"
+      # custom_data      = base64encode(local.hub2_linux_nva_init)
+      # ilb_untrust_ip   = local.hub2_nva_ilb_untrust_addr
+      # ilb_trust_ip     = local.hub2_nva_ilb_trust_addr
+      # ilb_untrust_ipv6 = local.hub2_nva_ilb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub2_nva_ilb_trust_addr_v6
     }
   }
 
   tgw1_features = {
-    express_route_gateway = {
-      enable = false
-      sku    = "ErGw1AZ"
-    }
-
-    s2s_vpn_gateway = {
-      enable = true
-      sku    = "VpnGw1AZ"
-      bgp_settings = {
-        asn                                       = local.tgw1_bgp_asn
-        peer_weight                               = 0
-        instance_0_bgp_peering_address_custom_ips = [local.tgw1_vpngw_bgp_apipa_0]
-        instance_1_bgp_peering_address_custom_ips = [local.tgw1_vpngw_bgp_apipa_1]
-      }
-    }
-
-    p2s_vpn_gateway = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      vpn_client_configuration = {
-        address_space = ["192.168.0.0/24"]
-        clients = [
-          { name = "client1" },
-          { name = "client2" },
-        ]
-      }
-      custom_route_cidr = ["8.8.8.8/32"]
-    }
-
-    config_security = {
-      create_firewall = false
-      firewall_sku    = local.firewall_sku
-      # firewall_policy_id = azurerm_firewall_policy.firewall_policy["region1"].id
-      routing_policies = [
-        # { name = "internet", destinations = ["Internet"] },
-        # { name = "private_traffic", destinations = ["PrivateTraffic"] }
-      ]
-    }
   }
 
   tgw2_features = {
-    express_route_gateway = {
-      enable = false
-      sku    = "ErGw1AZ"
-    }
-
-    s2s_vpn_gateway = {
-      enable = true
-      sku    = "VpnGw1AZ"
-      bgp_settings = {
-        asn                                       = local.tgw2_bgp_asn
-        peer_weight                               = 0
-        instance_0_bgp_peering_address_custom_ips = [local.tgw2_vpngw_bgp_apipa_0]
-        instance_1_bgp_peering_address_custom_ips = [local.tgw2_vpngw_bgp_apipa_1]
-      }
-    }
-
-    p2s_vpn_gateway = {
-      enable = false
-      sku    = "VpnGw1AZ"
-      vpn_client_configuration = {
-        address_space = ["192.168.0.0/24"]
-        clients = [
-          { name = "client1" },
-          { name = "client2" },
-        ]
-      }
-      custom_route_cidr = ["8.8.8.8/32"]
-    }
-
-    config_security = {
-      create_firewall = false
-      firewall_sku    = local.firewall_sku
-      # firewall_policy_id = azurerm_firewall_policy.firewall_policy["region2"].id
-      routing_policies = [
-        # { name = "internet", destinations = ["Internet"] },
-        # { name = "private_traffic", destinations = ["PrivateTraffic"] }
-      ]
-    }
   }
 }
 
@@ -402,7 +146,6 @@ module "common" {
   source                = "../../modules/common"
   env                   = "common"
   prefix                = local.prefix
-  firewall_sku          = local.firewall_sku
   regions               = local.regions
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
@@ -412,30 +155,6 @@ module "common" {
 }
 
 # private dns zones
-
-# resource "azurerm_private_dns_zone" "global" {
-#   resource_group_name = azurerm_resource_group.rg.name
-#   name                = local.cloud_domain
-#   timeouts {
-#     create = "60m"
-#   }
-# }
-
-# resource "azurerm_private_dns_zone" "privatelink_blob" {
-#   resource_group_name = azurerm_resource_group.rg.name
-#   name                = "privatelink.blob.core.windows.net"
-#   timeouts {
-#     create = "60m"
-#   }
-# }
-
-# resource "azurerm_private_dns_zone" "privatelink_appservice" {
-#   resource_group_name = azurerm_resource_group.rg.name
-#   name                = "privatelink.azurewebsites.net"
-#   timeouts {
-#     create = "60m"
-#   }
-# }
 
 # vm startup scripts
 #----------------------------
@@ -451,18 +170,18 @@ locals {
   hub2_ergw_asn  = "65022"
   hub2_ars_asn   = "65515"
 
-  init_dir = "/var/lib/azure"
+  init_dir = "/var/lib/aws"
   vm_script_targets_region1 = [
     { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
     { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
-    { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
+    # { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
     { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
     { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
   ]
   vm_script_targets_region2 = [
     { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
     { name = "hub2   ", host = local.hub2_vm_fqdn, ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
-    { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
+    # { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
     { name = "spoke4 ", host = local.spoke4_vm_fqdn, ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
     { name = "spoke5 ", host = local.spoke5_vm_fqdn, ipv4 = local.spoke5_vm_addr, ipv6 = local.spoke5_vm_addr_v6, probe = true },
   ]
@@ -528,13 +247,11 @@ module "vm_cloud_init" {
     local.vm_init_files,
     local.vm_startup_init_files
   )
-  packages = [
-    "docker.io", "docker-compose",
-  ]
+  packages = []
   run_commands = [
     "bash ${local.init_dir}/init/startup.sh",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
   ]
 }
 
@@ -544,13 +261,11 @@ module "probe_vm_cloud_init" {
     local.vm_init_files,
     local.probe_startup_init_files,
   )
-  packages = [
-    "docker.io", "docker-compose",
-  ]
+  packages = []
   run_commands = [
     "bash ${local.init_dir}/init/startup.sh",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
-    "docker-compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
   ]
 }
 
@@ -566,89 +281,24 @@ module "probe_vm_cloud_init" {
 
 # policy
 
-# resource "azurerm_firewall_policy" "firewall_policy" {
-#   for_each                 = local.regions
-#   resource_group_name      = azurerm_resource_group.rg.name
-#   name                     = "${local.prefix}-fw-policy-${each.key}"
-#   location                 = each.value.name
-#   threat_intelligence_mode = "Alert"
-#   sku                      = local.firewall_sku
-
-#   private_ip_ranges = concat(
-#     local.private_prefixes_ipv4,
-#     [
-#       local.internet_proxy,
-#     ]
-#   )
-
-#   #dns {
-#   #  proxy_enabled = true
-#   #}
-# }
-
-# collection
-
-# module "fw_policy_rule_collection_group" {
-#   for_each           = local.regions
-#   source             = "../../modules/firewall-policy"
-#   prefix             = local.prefix
-#   firewall_policy_id = azurerm_firewall_policy.firewall_policy[each.key].id
-
-#   network_rule_collection = [
-#     {
-#       name     = "network-rc"
-#       priority = 100
-#       action   = "Allow"
-#       rule = [
-#         {
-#           name                  = "network-rc-any-to-any"
-#           source_addresses      = ["*"]
-#           destination_addresses = ["*"]
-#           protocols             = ["Any"]
-#           destination_ports     = ["*"]
-#         }
-#       ]
-#     }
-#   ]
-#   application_rule_collection = []
-#   nat_rule_collection = [
-#     # {
-#     #   name     = "nat-rc"
-#     #   priority = 200
-#     #   action   = "Dnat"
-#     #   rule = [
-#     #     {
-#     #       name                = "nat-rc-any-to-spoke1vm"
-#     #       source_addresses    = ["*"]
-#     #       destination_address = "52.169.147.205"
-#     #       protocols           = ["TCP"]
-#     #       destination_ports   = ["22"]
-#     #       translated_address  = "10.1.0.5"
-#     #       translated_port     = 22
-#     #     }
-#     #   ]
-#     # }
-#   ]
-# }
-
 ####################################################
 # nva
 ####################################################
 
 # hub1
-
+/*
 locals {
-  hub1_nva_route_map_onprem      = "ONPREM"
-  hub1_nva_route_map_azure       = "AZURE"
-  hub1_nva_route_map_block_azure = "BLOCK_HUB_GW_SUBNET"
+  hub1_nva_route_map_onprem    = "ONPREM"
+  hub1_nva_route_map_aws       = "AWS"
+  hub1_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
   hub1_nva_vars = {
     LOCAL_ASN = local.hub1_nva_asn
     LOOPBACK0 = local.hub1_nva_loopback0
     LOOPBACKS = []
 
     PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub1_nva_route_map_block_azure} deny ${local.hub1_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub1_nva_route_map_block_azure} permit 0.0.0.0/0 le 32",
+      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} deny ${local.hub1_subnets["GatewaySubnet"].cidr[0]}",
+      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
     ]
 
     ROUTE_MAPS = [
@@ -703,17 +353,17 @@ locals {
 # hub2
 
 locals {
-  hub2_nva_route_map_onprem      = "ONPREM"
-  hub2_nva_route_map_azure       = "AZURE"
-  hub2_nva_route_map_block_azure = "BLOCK_HUB_GW_SUBNET"
+  hub2_nva_route_map_onprem    = "ONPREM"
+  hub2_nva_route_map_aws       = "AWS"
+  hub2_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
   hub2_nva_vars = {
     LOCAL_ASN = local.hub2_nva_asn
     LOOPBACK0 = local.hub2_nva_loopback0
     LOOPBACKS = []
 
     PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub2_nva_route_map_block_azure} deny ${local.hub2_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub2_nva_route_map_block_azure} permit 0.0.0.0/0 le 32",
+      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} deny ${local.hub2_subnets["GatewaySubnet"].cidr[0]}",
+      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
     ]
 
     ROUTE_MAPS = [
@@ -786,3 +436,4 @@ resource "local_file" "main_files" {
   filename = each.key
   content  = each.value
 }
+*/

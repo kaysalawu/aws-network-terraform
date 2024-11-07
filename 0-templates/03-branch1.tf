@@ -14,13 +14,20 @@ module "branch1" {
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.branch1_region]
 
   enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.branch1_ipv6_cidr
+  ipv6_cidr          = local.branch1_cidr_ipv6
   use_ipv6_ipam_pool = false
   ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.branch1_region]
 
   subnets = local.branch1_subnets
 
   public_dns_zone_name = local.domain_name
+
+  bastion_config = {
+    enable               = true
+    key_name             = module.common.key_pair_name[local.branch1_region]
+    private_ip           = local.branch1_bastion_addr
+    iam_instance_profile = module.common.iam_instance_profile.name
+  }
 
   dhcp_options = {
     enable              = true
@@ -64,32 +71,35 @@ locals {
   ]
 }
 
-module "branch1_dns" {
-  source               = "../../modules/ec2"
-  name                 = "${local.branch1_prefix}dns"
-  availability_zone    = "${local.branch1_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.branch1_region]
-  user_data            = base64encode(local.branch1_unbound_startup)
-  tags                 = local.branch1_tags
+resource "aws_instance" "branch1_dns" {
+  instance_type          = local.vmsize
+  availability_zone      = "${local.branch1_region}a"
+  ami                    = data.aws_ami.ubuntu.id
+  key_name               = module.common.key_pair_name[local.branch1_region]
+  vpc_security_group_ids = [module.branch1.ec2_security_group_id, ]
+  iam_instance_profile   = module.common.iam_instance_profile.name
+  subnet_id              = module.branch1.private_subnet_ids["MainSubnet"]
+  private_ip             = local.branch1_dns_addr
+  ipv6_address_count     = local.enable_ipv6 ? 1 : 0
+  user_data              = base64encode(local.branch1_unbound_startup)
 
-  interfaces = [
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+  tags = merge(local.branch1_tags,
     {
-      name               = "${local.branch1_prefix}dns-main"
-      subnet_id          = module.branch1.private_subnet_ids["MainSubnet"]
-      private_ips        = [local.branch1_dns_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      Name = "${local.branch1_prefix}dns"
     }
-  ]
+  )
   depends_on = [
     time_sleep.branch1,
   ]
 }
+
 resource "time_sleep" "branch1_dns" {
   create_duration = "120s"
   depends_on = [
-    module.branch1_dns,
+    aws_instance.branch1_dns,
   ]
 }
 
@@ -97,24 +107,26 @@ resource "time_sleep" "branch1_dns" {
 # workload
 ####################################################
 
-module "branch1_vm" {
-  source               = "../../modules/ec2"
-  name                 = "${local.branch1_prefix}vm"
-  availability_zone    = "${local.branch1_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.branch1_region]
-  user_data            = base64encode(module.vm_cloud_init.cloud_config)
-  tags                 = local.branch1_tags
+resource "aws_instance" "branch1_vm" {
+  instance_type          = local.vmsize
+  availability_zone      = "${local.branch1_region}a"
+  ami                    = data.aws_ami.ubuntu.id
+  key_name               = module.common.key_pair_name[local.branch1_region]
+  vpc_security_group_ids = [module.branch1.ec2_security_group_id, ]
+  iam_instance_profile   = module.common.iam_instance_profile.name
+  subnet_id              = module.branch1.private_subnet_ids["MainSubnet"]
+  private_ip             = local.branch1_vm_addr
+  ipv6_address_count     = local.enable_ipv6 ? 1 : 0
+  user_data              = base64encode(module.vm_cloud_init.cloud_config)
 
-  interfaces = [
+  metadata_options {
+    instance_metadata_tags = "enabled"
+  }
+  tags = merge(local.branch1_tags,
     {
-      name               = "${local.branch1_prefix}vm-main"
-      subnet_id          = module.branch1.private_subnet_ids["MainSubnet"]
-      private_ips        = [local.branch1_vm_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      Name = "${local.branch1_prefix}vm"
     }
-  ]
+  )
   depends_on = [
     time_sleep.branch1_dns,
   ]

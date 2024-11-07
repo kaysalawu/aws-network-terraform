@@ -1,6 +1,6 @@
 #! /bin/bash
 
-exec > /var/log/azure-setup-unbound.log
+exec > /var/log/aws-setup-unbound.log
 
 systemctl stop systemd-resolved
 systemctl disable systemd-resolved

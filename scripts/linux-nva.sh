@@ -51,7 +51,7 @@ echo "2 rt1" | tee -a /etc/iproute2/rt_tables
 ip rule add from $ETH1_DGW/$ETH1_MASK table rt1
 ip rule add to $ETH1_DGW/$ETH1_MASK table rt1
 
-# the azure user-defined routes will direct all vnet inbound traffic to eth1 (trust)
+# the aws static routes will direct all vnet inbound traffic to eth1 (trust)
 # if destination is internal (RFC1918 and RFC6598), ip rule directs kernel to use rt1 for lookup; and then use the ip routes in rt1
 # if destination is internet (not RFC1918 and RFC6598), use the main routing table for lookup and exit via eth0 default gateway
 # ip rule add to 10.0.0.0/8 table rt1
@@ -68,7 +68,7 @@ ip rule add to $ETH1_DGW/$ETH1_MASK table rt1
 # ip route add 192.168.0.0/16 via $ETH1_DGW dev eth1 table rt1
 # ip route add 100.64.0.0/10 via $ETH1_DGW dev eth1 table rt1
 
-# for traffic originating from azure platform to eth1 ...
+# for traffic originating from aws platform to eth1 ...
 # rule "ip rule add to $ETH1_DGW/$ETH1_MASK table rt1" is used
 # this rule directs that rt1 should be used for lookup
 # the return traffic will use the following rt1 routes
@@ -167,13 +167,6 @@ echo -e "\n resolvectl ...\n"
 resolvectl status
 EOF
 chmod a+x /usr/local/bin/dns-info
-
-# azure service tester
-
-cat <<'EOF' > /usr/local/bin/crawlz
-sudo bash -c "cd /var/lib/azure/crawler/app && ./crawler.sh"
-EOF
-chmod a+x /usr/local/bin/crawlz
 
 # ipsec debug
 

@@ -3,9 +3,9 @@
 
 ## 1. Using Cloudshell Bash (Option 1)
 
-1. Ensure that you have [setup your Azure Cloud Shell](https://learn.microsoft.com/en-us/azure/cloud-shell/overview) environment.
+1. Ensure that you have [setup your Azure Cloud Shell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html) environment.
 
-2. Log in to Azure [Cloud Shell](https://shell.azure.com) and select `Bash` terminal.
+2. Log in to Azure [Cloud Shell](https://docs.aws.amazon.com/cloudshell/latest/userguide/welcome.html#how-to-get-started) and select `Bash` terminal.
 
    > **Cloud Shell Timeout**
    >
@@ -17,7 +17,7 @@ If you prefer to run the code on a local bash terminal, then proceed to [Option 
 
 To use a local Linux machine, do the following:
 
-1. Ensure that you have installed and configured [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli)
+1. Ensure that you have installed and configured [Azure CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 2. Ensure that you have installed [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli)
 
 ## 3. Remaining Steps

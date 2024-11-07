@@ -16,8 +16,18 @@ apt update
 apt install -y unzip jq tcpdump dnsutils net-tools nmap apache2-utils iperf3
 apt install -y awscli
 
+# cloud-init install for docker did not work so installing manually here
+apt install -y ca-certificates curl gnupg lsb-release
+mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+docker version
+docker compose version
+
 # test scripts (ipv4)
-#---------------------------
 
 # ping-ipv4
 cat <<'EOF' >/usr/local/bin/ping-ipv4
@@ -153,7 +163,6 @@ EOF
 chmod a+x /usr/local/bin/trace-dns6
 
 # other scripts
-#---------------------------
 
 # dns-info
 cat <<'EOF' >/usr/local/bin/dns-info
@@ -163,7 +172,6 @@ EOF
 chmod a+x /usr/local/bin/dns-info
 
 # traffic generators (ipv4)
-#---------------------------
 
 # light-traffic generator
 cat <<'EOF' >/usr/local/bin/light-traffic
@@ -195,7 +203,6 @@ EOF
 chmod a+x /usr/local/bin/heavy-traffic
 
 # traffic generators (ipv6)
-#---------------------------
 
 # light-traffic generator
 cat <<'EOF' >/usr/local/bin/light-traffic-ipv6
@@ -214,7 +221,6 @@ EOF
 chmod a+x /usr/local/bin/light-traffic-ipv6
 
 # systemctl services
-#---------------------------
 
 cat <<EOF > /etc/systemd/system/flaskapp.service
 [Unit]
@@ -242,7 +248,6 @@ systemctl enable flaskapp.service
 systemctl restart flaskapp.service
 
 # crontabs
-#---------------------------
 
 cat <<'EOF' >/etc/cron.d/traffic-gen
 %{ if TARGETS_LIGHT_TRAFFIC_GEN != [] ~}

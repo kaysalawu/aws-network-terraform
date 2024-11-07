@@ -673,6 +673,11 @@ resource "aws_route53_zone" "private" {
 
 # association
 
+resource "aws_route53_zone_association" "private" {
+  for_each = { for vpc_id in var.private_dns_zone_vpc_associations : vpc_id => vpc_id if var.create_private_dns_zone && var.private_dns_zone_name != null }
+  zone_id  = aws_route53_zone.private[0].zone_id
+  vpc_id   = each.value
+}
 
 ####################################################
 # bastion
@@ -681,28 +686,36 @@ resource "aws_route53_zone" "private" {
 # server
 #--------------------------
 
-resource "aws_instance" "bastion" {
-  count                       = var.bastion_config.enable ? 1 : 0
-  instance_type               = var.bastion_config.instance_type
-  availability_zone           = "${var.region}a"
-  ami                         = data.aws_ami.ubuntu.id
-  key_name                    = var.bastion_config.key_name
-  vpc_security_group_ids      = [aws_security_group.bastion_sg.id, ]
-  iam_instance_profile        = var.bastion_config.iam_instance_profile
-  subnet_id                   = aws_subnet.public["UntrustSubnet"].id
-  private_ip                  = var.bastion_config.private_ip
-  ipv6_address_count          = var.enable_ipv6 ? 1 : 0
-  associate_public_ip_address = true
+locals {
+  bastion_startup = templatefile("${path.module}/scripts/bastion.sh", {})
+}
 
-  metadata_options {
-    instance_metadata_tags = "enabled"
-  }
+module "bastion" {
+  count                = var.bastion_config.enable ? 1 : 0
+  source               = "../ec2"
+  name                 = "${local.prefix}bastion"
+  availability_zone    = "${var.region}a"
+  iam_instance_profile = var.bastion_config.iam_instance_profile
+  ami                  = data.aws_ami.ubuntu.id
+  key_name             = var.bastion_config.key_name
+  user_data            = base64encode(local.bastion_startup)
+
   tags = merge(var.tags,
     {
       Name  = "${local.prefix}bastion"
       Scope = "public"
     }
   )
+
+  interfaces = [
+    {
+      name               = "${local.prefix}bastion-untrust"
+      subnet_id          = aws_subnet.public["UntrustSubnet"].id
+      private_ips        = var.bastion_config.private_ips
+      security_group_ids = [aws_security_group.bastion_sg.id, ]
+      create_public_ip   = true
+    }
+  ]
 }
 
 # dns zone record
@@ -710,23 +723,23 @@ resource "aws_instance" "bastion" {
 
 # public
 
-resource "aws_route53_record" "bastion_public" {
-  count   = var.bastion_config.enable && var.public_dns_zone_name != null ? 1 : 0
-  zone_id = data.aws_route53_zone.cloudtuple_public.0.zone_id
-  name    = "bastion.eu.${data.aws_route53_zone.cloudtuple_public.0.name}"
-  type    = "A"
-  ttl     = "300"
-  records = [aws_instance.bastion.0.public_ip]
-}
+# resource "aws_route53_record" "bastion_public" {
+#   count   = var.bastion_config.enable && var.public_dns_zone_name != null ? 1 : 0
+#   zone_id = data.aws_route53_zone.public.0.zone_id
+#   name    = "bastion.eu.${data.aws_route53_zone.public.0.name}"
+#   type    = "A"
+#   ttl     = "300"
+#   records = [module.bastion.public_ips["${local.prefix}bastion-untrust"], ]
+# }
 
-# private
+# # private
 
-resource "aws_route53_record" "bastion_private" {
-  count   = var.bastion_config.enable && var.private_dns_zone_name != null ? 1 : 0
-  zone_id = data.aws_route53_zone.cloudtuple_private.0.zone_id
-  name    = "bastion.eu.${data.aws_route53_zone.cloudtuple_private.0.name}"
-  type    = "A"
-  ttl     = "300"
-  records = [aws_instance.bastion.0.private_ip]
-}
+# resource "aws_route53_record" "bastion_private" {
+#   count   = var.bastion_config.enable && var.private_dns_zone_name != null ? 1 : 0
+#   zone_id = data.aws_route53_zone.private.0.zone_id
+#   name    = "bastion.eu.${data.aws_route53_zone.private.0.name}"
+#   type    = "A"
+#   ttl     = "300"
+#   records = [module.bastion.private_ips["${local.prefix}bastion-untrust"][0], ]
+# }
 

@@ -155,10 +155,19 @@ variable "bastion_config" {
   type = object({
     enable               = bool
     instance_type        = optional(string, "t2.micro")
-    key_name             = string
-    private_ip           = optional(string, null)
+    key_name             = optional(string, null)
+    private_ips          = optional(list(string), [])
+    ipv6_addresses       = optional(list(string), [])
     iam_instance_profile = optional(string, null)
   })
+  default = {
+    enable               = false
+    instance_type        = "t2.micro"
+    key_name             = null
+    private_ips          = []
+    ipv6_addresses       = []
+    iam_instance_profile = null
+  }
 }
 
 variable "create_private_dns_zone" {
@@ -177,4 +186,10 @@ variable "public_dns_zone_name" {
   description = "The name of the public DNS zone to associate with the VPC"
   type        = string
   default     = null
+}
+
+variable "private_dns_zone_vpc_associations" {
+  description = "A list of VPC IDs to associate with the private DNS zone"
+  type        = list(string)
+  default     = []
 }

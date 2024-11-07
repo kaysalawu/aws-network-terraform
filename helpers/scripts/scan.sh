@@ -13,28 +13,25 @@ color_red=$(tput setaf 1)
 reset=$(tput sgr0)
 
 working_dir=$(pwd)
-while [[ $PWD != '/' && ${PWD##*/} != 'azure-network-terraform' ]]; do cd ..; done
+while [[ $PWD != '/' && ${PWD##*/} != 'aws-network-terraform' ]]; do cd ..; done
 if [[ $PWD == '/' ]]; then
-    echo "Could not find azure-network-terraform directory"
+    echo "Could not find aws-network-terraform directory"
     exit 1
 fi
 
 terraform_docs_dirs=(
+1-org
+2-projects
+3-labs
+4-general
 modules
 )
 
 main_dirs=(
-1-hub-and-spoke
-2-virtual-wan
-3-network-manager
-5-aks
+3-labs
 )
 
 main_dirs_excluded=(
-)
-
-custom_dirs=(
-4-general
 )
 
 function showUsage() {
@@ -45,10 +42,7 @@ function showUsage() {
   --plan, -p     : Run terraform plan on all target directories\n\
   --validate, -v : Run terraform validate on all target directories\n\
   --cleanup, -u  : Delete terraform state files\n\
-  --docs, -d     : Generate terraform docs\n\
-  --custom-plan, -cp  : Run custom terraform plan\n\
-  --custom-validate, -cv : Run custom terraform validate\n\
-  --custom-cleanup, -cu : Run custom terraform cleanup"
+  --docs, -d     : Generate terraform docs"
 }
 
 is_excluded() {
@@ -205,57 +199,6 @@ run_terraform_docs() {
     fi
 }
 
-function run_terraform_plan_custom() {
-    for dir in "${custom_dirs[@]}"; do
-        if [ -d "$dir" ]; then
-            for subdir in "$dir"/*/; do
-                if [ -d "$subdir" ]; then
-                    echo && echo "$(basename "${subdir%/}")"
-                    echo "----------------------------------"
-                    terraform_plan "$subdir"
-                fi
-            done
-        fi
-    done
-}
-
-function run_terraform_validate_custom() {
-    for dir in "${custom_dirs[@]}"; do
-        if [ -d "$dir" ]; then
-            for subdir in "$dir"/*/; do
-                if [ -d "$subdir" ]; then
-                    echo && echo "$(basename "${subdir%/}")"
-                    echo "----------------------------------"
-                    terraform_validate "$subdir"
-                fi
-            done
-        fi
-    done
-}
-
-function run_terraform_cleanup_custom() {
-    read -p "Delete terraform state? (y/n): " yn
-    if [[ $yn == [Yy] ]]; then
-        for dir in "${custom_dirs[@]}"; do
-            if [ -d "$dir" ]; then
-                for subdir in "$dir"/*/; do
-                    if [ -d "$subdir" ]; then
-                        echo && echo "$(basename "${subdir%/}")"
-                        echo "----------------------------------"
-                        terraform_cleanup "$subdir"
-                    fi
-                done
-            fi
-        done
-    elif [[ $yn == [Nn] ]]; then
-        return 1
-    else
-        echo -e "Invalid input. Please answer y or n."
-        return 1
-    fi
-    echo -e "\n${char_celebrate} done!"
-}
-
 case "$1" in
   "--diff" | "-f")
     echo && run_task_on_dirs dir_diff --no-prompt
@@ -277,15 +220,6 @@ case "$1" in
     ;;
   "--docs" | "-d")
     echo && run_terraform_docs --prompt
-    ;;
-  "--custom-plan" | "-cp")
-    echo && run_terraform_plan_custom
-    ;;
-  "--custom-validate" | "-cv")
-    echo && run_terraform_validate_custom
-    ;;
-  "--custom-cleanup" | "-cu")
-    echo && run_terraform_cleanup_custom
     ;;
   "--help" | "-h")
     showUsage

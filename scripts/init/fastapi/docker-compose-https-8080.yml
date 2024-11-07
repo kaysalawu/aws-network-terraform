@@ -2,9 +2,7 @@ services:
   nginx-8080:
     container_name: nginx-8080
     hostname: -DCK-nginx-8080
-    build:
-      context: ./nginx/nginx-8080
-      dockerfile: Dockerfile
+    image: ksalawu/fastapi:latest
     environment:
       HOST_HOSTNAME: $${HOSTNAME}
     network_mode: host
@@ -16,9 +14,7 @@ services:
   nginx-8080-ipv6:
     container_name: nginx-8080-ipv6
     hostname: -DCK-nginx-8080-ipv6
-    build:
-      context: ./nginx/nginx-8080
-      dockerfile: Dockerfile
+    image: ksalawu/fastapi:latest
     environment:
       HOST_HOSTNAME: $${HOSTNAME}
     network_mode: host
@@ -30,9 +26,7 @@ services:
   nginx-8080-http-80:
     container_name: nginx-8080-http-80
     hostname: -DCK-nginx-8080-http-80
-    build:
-      context: ./app/app
-      dockerfile: Dockerfile
+    image: ksalawu/fastapi:latest
     environment:
       HOST_HOSTNAME: $${HOSTNAME}
     network_mode: host
@@ -41,9 +35,7 @@ services:
   nginx-8080-http-80-ipv6:
     container_name: nginx-8080-http-80-ipv6
     hostname: -DCK-nginx-8080-http-80-ipv6
-    build:
-      context: ./app/app
-      dockerfile: Dockerfile
+    image: ksalawu/fastapi:latest
     environment:
       HOST_HOSTNAME: $${HOSTNAME}
     network_mode: host
