@@ -34,7 +34,7 @@ module "hub1" {
 
   bastion_config = {
     enable               = true
-    key_name             = module.common.key_pair_name[local.hub1_region]
+    key_name             = module.common.key_pair_name[local.region1]
     private_ips          = [local.hub1_bastion_addr]
     iam_instance_profile = module.common.iam_instance_profile.name
     public_dns_zone_name = local.domain_name
@@ -67,7 +67,7 @@ module "hub1_vm" {
   availability_zone    = "${local.hub1_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.hub1_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.hub1_tags
 

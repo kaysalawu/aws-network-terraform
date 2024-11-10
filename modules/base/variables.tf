@@ -39,6 +39,18 @@ variable "ssh_public_key" {
   default     = null
 }
 
+variable "private_prefixes_ipv4" {
+  description = "A list of private prefixes to allow access to"
+  type        = list(string)
+  default     = ["10.0.0.0/8", ]
+}
+
+variable "private_prefixes_ipv6" {
+  description = "A list of private prefixes to allow access to"
+  type        = list(string)
+  default     = ["fd00::/8"]
+}
+
 variable "cidr" {
   description = "(Optional) The IPv4 CIDR block for the VPC. CIDR can be explicitly set or it can be derived from IPAM using `ipv4_netmask_length` & `ipv4_ipam_pool_id`"
   type        = list(string)

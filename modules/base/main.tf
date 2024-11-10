@@ -1,16 +1,9 @@
 
 locals {
   prefix = var.prefix == "" ? "" : format("%s-", var.prefix)
-  private_prefixes = [
-    "10.0.0.0/8",
-    "172.16.0.0/12",
-    "192.168.0.0/16",
-    "100.64.0.0/10",
-  ]
-  private_prefixes_v6 = [
-    "2000::/3",
-    "fd00::/8",
-  ]
+
+  ec2_external_ingress_ports = ["80", "8080", "443", "3000", ]
+
   public_subnets    = { for k, v in var.subnets : k => v if v.type == "public" }
   private_subnets   = { for k, v in var.subnets : k => v if v.type == "private" }
   public_subnets_a  = { for k, v in local.public_subnets : k => v if v.az == "a" }
@@ -163,9 +156,9 @@ resource "aws_security_group" "bastion_sg" {
   )
 }
 
-# ssh ingress
+# ingress - external (ssh)
 
-resource "aws_security_group_rule" "bastion_ssh_ingress" {
+resource "aws_security_group_rule" "bastion_ingress_external_ssh" {
   type              = "ingress"
   from_port         = 22
   to_port           = 22
@@ -175,33 +168,9 @@ resource "aws_security_group_rule" "bastion_ssh_ingress" {
   security_group_id = aws_security_group.bastion_sg.id
 }
 
-# icmp ingress
+# egress - all
 
-resource "aws_security_group_rule" "bastion_icmp_ingress" {
-  type              = "ingress"
-  from_port         = 8
-  to_port           = 0
-  protocol          = "icmp"
-  cidr_blocks       = local.private_prefixes
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_sg.id
-}
-
-# traceroute ingress
-
-resource "aws_security_group_rule" "bastion_traceroute_ingress" {
-  type              = "ingress"
-  from_port         = 33434
-  to_port           = 33534
-  protocol          = "udp"
-  cidr_blocks       = local.private_prefixes
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_sg.id
-}
-
-# all egress
-
-resource "aws_security_group_rule" "bastion_egress" {
+resource "aws_security_group_rule" "bastion_egress_all" {
   type              = "egress"
   from_port         = 0
   to_port           = 0
@@ -224,64 +193,34 @@ resource "aws_security_group" "ec2_sg" {
   }
 }
 
-# icmp & traceroute ingress
+# ingress - internal (all)
 
-resource "aws_security_group_rule" "ec2_prv_icmp_ingress" {
+resource "aws_security_group_rule" "ec2_ingress_internal_all" {
   type              = "ingress"
-  from_port         = 8
+  from_port         = 0
   to_port           = 0
-  protocol          = "icmp"
-  cidr_blocks       = local.private_prefixes
-  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  cidr_blocks       = var.private_prefixes_ipv4
+  ipv6_cidr_blocks  = var.private_prefixes_ipv6
   security_group_id = aws_security_group.ec2_sg.id
 }
 
-resource "aws_security_group_rule" "ec2_prv_traceroute_ingress" {
+# ingress - external (tcp)
+
+resource "aws_security_group_rule" "ec2_ingress_external_tcp" {
+  for_each          = toset(local.ec2_external_ingress_ports)
   type              = "ingress"
-  from_port         = 33434
-  to_port           = 33534
-  protocol          = "udp"
-  cidr_blocks       = local.private_prefixes
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_sg.id
-}
-
-# bastion ingress
-
-resource "aws_security_group_rule" "ec2_prv_bastion_ingress" {
-  type                     = "ingress"
-  from_port                = "0"
-  to_port                  = "0"
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.bastion_sg.id
-  security_group_id        = aws_security_group.ec2_sg.id
-}
-
-# dns ingress (for bind server)
-
-resource "aws_security_group_rule" "ec2_prv_tcp_dns_ingress" {
-  type              = "ingress"
-  from_port         = 53
-  to_port           = 53
+  from_port         = 0
+  to_port           = each.value
   protocol          = "tcp"
-  cidr_blocks       = local.private_prefixes
+  cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
   security_group_id = aws_security_group.ec2_sg.id
 }
 
-resource "aws_security_group_rule" "ec2_prv_udp_dns_ingress" {
-  type              = "ingress"
-  from_port         = 53
-  to_port           = 53
-  protocol          = "udp"
-  cidr_blocks       = local.private_prefixes
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_sg.id
-}
+# egress - all
 
-# egress
-
-resource "aws_security_group_rule" "ec2_prv_egress" {
+resource "aws_security_group_rule" "ec2_egress_all" {
   type              = "egress"
   from_port         = 0
   to_port           = 0
@@ -308,9 +247,9 @@ resource "aws_security_group" "nva_sg" {
   )
 }
 
-# ssh ingress
+# ingress - external (ssh)
 
-resource "aws_security_group_rule" "nva_ssh_ingress" {
+resource "aws_security_group_rule" "nva_ingress_external_ssh" {
   type              = "ingress"
   from_port         = 22
   to_port           = 22
@@ -320,20 +259,9 @@ resource "aws_security_group_rule" "nva_ssh_ingress" {
   security_group_id = aws_security_group.nva_sg.id
 }
 
-# bastion ingress
+# ingress - external (ike)
 
-resource "aws_security_group_rule" "bastion_ingress" {
-  type                     = "ingress"
-  from_port                = "0"
-  to_port                  = "0"
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.bastion_sg.id
-  security_group_id        = aws_security_group.nva_sg.id
-}
-
-# ike ingress
-
-resource "aws_security_group_rule" "nva_udp_500_ingress" {
+resource "aws_security_group_rule" "nva_ingress_external_ike" {
   type              = "ingress"
   from_port         = 500
   to_port           = 500
@@ -343,9 +271,9 @@ resource "aws_security_group_rule" "nva_udp_500_ingress" {
   security_group_id = aws_security_group.nva_sg.id
 }
 
-# nat-t ingress
+# ingress - external (nat-t)
 
-resource "aws_security_group_rule" "nva_udp_4500_ingress" {
+resource "aws_security_group_rule" "nva_ingress_external_nat_t" {
   type              = "ingress"
   from_port         = 4500
   to_port           = 4500
@@ -355,31 +283,21 @@ resource "aws_security_group_rule" "nva_udp_4500_ingress" {
   security_group_id = aws_security_group.nva_sg.id
 }
 
-# nva ingress
+# ingress - internal (all)
 
-resource "aws_security_group_rule" "nva_ingress" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.nva_sg.id
-  security_group_id        = aws_security_group.nva_sg.id
+resource "aws_security_group_rule" "nva_internal_ingress_all" {
+  type              = "ingress"
+  from_port         = "0"
+  to_port           = "0"
+  protocol          = "-1"
+  cidr_blocks       = var.private_prefixes_ipv4
+  ipv6_cidr_blocks  = var.private_prefixes_ipv6
+  security_group_id = aws_security_group.nva_sg.id
 }
 
-# ec2 ingress
+# egress - all
 
-resource "aws_security_group_rule" "vpc_ec2_ingress" {
-  type                     = "ingress"
-  from_port                = 0
-  to_port                  = 0
-  protocol                 = "-1"
-  source_security_group_id = aws_security_group.ec2_sg.id
-  security_group_id        = aws_security_group.nva_sg.id
-}
-
-# egress
-
-resource "aws_security_group_rule" "nva_egress" {
+resource "aws_security_group_rule" "nva_egress_all" {
   type              = "egress"
   from_port         = 0
   to_port           = 0

@@ -35,7 +35,7 @@ module "spoke1_vm" {
   availability_zone    = "${local.spoke1_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.spoke1_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke1_tags
 
@@ -49,7 +49,7 @@ module "spoke1_vm" {
     }
   ]
   depends_on = [
-    # module.tgw1,
+    module.tgw1,
   ]
 }
 
@@ -89,7 +89,7 @@ module "spoke2_vm" {
   availability_zone    = "${local.spoke2_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.spoke2_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke2_tags
 
@@ -103,7 +103,7 @@ module "spoke2_vm" {
     }
   ]
   depends_on = [
-    # module.tgw1,
+    module.tgw1,
   ]
 }
 
@@ -143,7 +143,7 @@ module "spoke3_vm" {
   availability_zone    = "${local.spoke3_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.spoke3_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke3_tags
 
@@ -157,7 +157,7 @@ module "spoke3_vm" {
     }
   ]
   depends_on = [
-    # module.tgw1,
+    module.tgw1,
   ]
 }
 

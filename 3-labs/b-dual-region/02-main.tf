@@ -175,11 +175,15 @@ locals {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = local.vm_script_targets
     TARGETS_HEAVY_TRAFFIC_GEN = [for target in local.vm_script_targets : target.host if try(target.probe, false)]
+    USERNAME                  = local.username
+    PASSWORD                  = local.password
   }
   vm_init_vars = {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = []
     TARGETS_HEAVY_TRAFFIC_GEN = []
+    USERNAME                  = local.username
+    PASSWORD                  = local.password
   }
   proxy_init_vars = {
     ONPREM_LOCAL_RECORDS = []
@@ -190,6 +194,8 @@ locals {
       local.private_prefixes_ipv4,
       ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
     )
+    USERNAME = local.username
+    PASSWORD = local.password
   }
   vm_init_files = {
     "${local.init_dir}/fastapi/docker-compose-http-80.yml"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-80.yml", {}) }
