@@ -66,3 +66,29 @@ resource "aws_instance" "this" {
     }
   )
 }
+
+####################################################
+# dns record
+####################################################
+
+# dns record
+
+resource "aws_route53_record" "this" {
+  for_each = { for interface in var.interfaces : interface.name => interface if interface.dns_config.zone_name != null }
+  zone_id  = data.aws_route53_zone.this[each.key].id
+  name     = each.value.dns_config.name != null ? each.value.dns_config.name : aws_instance.this.tags.Name
+  type     = each.value.dns_config.type
+  ttl      = each.value.dns_config.ttl
+  records  = [aws_instance.this.private_ip, ]
+
+  depends_on = [
+    aws_instance.this,
+  ]
+  lifecycle {
+    ignore_changes = [
+      zone_id,
+    ]
+  }
+}
+
+

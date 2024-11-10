@@ -15,10 +15,10 @@ module "spoke1" {
   use_ipv4_ipam_pool = false
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke1_region]
 
-  enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.spoke1_ipv6_cidr
-  use_ipv6_ipam_pool = false
-  ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke1_region]
+  # enable_ipv6        = local.enable_ipv6
+  # ipv6_cidr          = local.spoke1_ipv6_cidr
+  # use_ipv6_ipam_pool = false
+  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke1_region]
 
   subnets = local.spoke1_subnets
 
@@ -45,7 +45,11 @@ module "spoke1_vm" {
       subnet_id          = module.spoke1.private_subnet_ids["MainSubnet"]
       private_ips        = [local.spoke1_vm_addr, ]
       security_group_ids = [module.spoke1.ec2_security_group_id, ]
+      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke1_vm_hostname}.${local.region1_code}" }
     }
+  ]
+  depends_on = [
+    # module.tgw1,
   ]
 }
 
@@ -65,10 +69,10 @@ module "spoke2" {
   use_ipv4_ipam_pool = false
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke2_region]
 
-  enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.spoke2_ipv6_cidr
-  use_ipv6_ipam_pool = false
-  ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke2_region]
+  # enable_ipv6        = local.enable_ipv6
+  # ipv6_cidr          = local.spoke2_ipv6_cidr
+  # use_ipv6_ipam_pool = false
+  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke2_region]
 
   subnets = local.spoke2_subnets
 
@@ -95,7 +99,11 @@ module "spoke2_vm" {
       subnet_id          = module.spoke2.private_subnet_ids["MainSubnet"]
       private_ips        = [local.spoke2_vm_addr, ]
       security_group_ids = [module.spoke2.ec2_security_group_id, ]
+      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke2_vm_hostname}.${local.region1_code}" }
     }
+  ]
+  depends_on = [
+    # module.tgw1,
   ]
 }
 
@@ -115,10 +123,10 @@ module "spoke3" {
   use_ipv4_ipam_pool = false
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke3_region]
 
-  enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.spoke3_ipv6_cidr
-  use_ipv6_ipam_pool = false
-  ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke3_region]
+  # enable_ipv6        = local.enable_ipv6
+  # ipv6_cidr          = local.spoke3_ipv6_cidr
+  # use_ipv6_ipam_pool = false
+  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke3_region]
 
   subnets = local.spoke3_subnets
 
@@ -145,7 +153,11 @@ module "spoke3_vm" {
       subnet_id          = module.spoke3.private_subnet_ids["MainSubnet"]
       private_ips        = [local.spoke3_vm_addr, ]
       security_group_ids = [module.spoke3.ec2_security_group_id, ]
+      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke3_vm_hostname}.${local.region1_code}" }
     }
+  ]
+  depends_on = [
+    # module.tgw1,
   ]
 }
 

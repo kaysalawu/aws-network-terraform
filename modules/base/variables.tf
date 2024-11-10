@@ -159,21 +159,12 @@ variable "bastion_config" {
     private_ips          = optional(list(string), [])
     ipv6_addresses       = optional(list(string), [])
     iam_instance_profile = optional(string, null)
+    public_dns_zone_name = optional(string, null)
+    dns_prefix           = optional(string, null)
   })
   default = {
-    enable               = false
-    instance_type        = "t2.micro"
-    key_name             = null
-    private_ips          = []
-    ipv6_addresses       = []
-    iam_instance_profile = null
+    enable = false
   }
-}
-
-variable "create_private_dns_zone" {
-  description = "Should be true to create a private DNS zone for the VPC"
-  type        = bool
-  default     = false
 }
 
 variable "private_dns_zone_name" {
@@ -182,14 +173,33 @@ variable "private_dns_zone_name" {
   default     = null
 }
 
-variable "public_dns_zone_name" {
-  description = "The name of the public DNS zone to associate with the VPC"
-  type        = string
-  default     = null
-}
-
 variable "private_dns_zone_vpc_associations" {
   description = "A list of VPC IDs to associate with the private DNS zone"
   type        = list(string)
   default     = []
+}
+
+variable "private_dns_config" {
+  description = "A map of DNS configuration"
+  type = object({
+    enable_service_discovery = optional(bool, false)
+    create_zone              = optional(bool, false)
+    zone_name                = optional(string, null)
+    vpc_associations         = optional(list(string), [])
+  })
+  default = {}
+
+  validation {
+    condition = (
+      (var.private_dns_config.create_zone == false || var.private_dns_config.zone_name != null) &&
+      (length(var.private_dns_config.vpc_associations) == 0 || var.private_dns_config.zone_name != null)
+    )
+    error_message = "Validation failed: 1) If 'create_zone' is true, 'zone_name' must be specified. 2) If 'vpc_associations' are provided, 'zone_name' must be specified."
+  }
+}
+
+variable "create_nat_gateway" {
+  description = "Should be true to create a NAT Gateway for each private subnet"
+  type        = bool
+  default     = false
 }

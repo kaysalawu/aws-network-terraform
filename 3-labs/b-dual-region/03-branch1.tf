@@ -13,18 +13,16 @@ module "branch1" {
   use_ipv4_ipam_pool = false
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.branch1_region]
 
-  enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.branch1_ipv6_cidr
-  use_ipv6_ipam_pool = false
-  ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.branch1_region]
+  # enable_ipv6        = local.enable_ipv6
+  # ipv6_cidr          = local.branch1_ipv6_cidr
+  # use_ipv6_ipam_pool = false
+  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.branch1_region]
 
   subnets = local.branch1_subnets
 
-  public_dns_zone_name = local.domain_name
-
   dhcp_options = {
     enable              = true
-    domain_name         = local.cloud_dns_zone
+    domain_name         = local.domain_name
     domain_name_servers = [local.branch1_dns_addr, ]
   }
 

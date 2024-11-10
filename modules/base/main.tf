@@ -9,6 +9,7 @@ locals {
   ]
   private_prefixes_v6 = [
     "2000::/3",
+    "fd00::/8",
   ]
   public_subnets    = { for k, v in var.subnets : k => v if v.type == "public" }
   private_subnets   = { for k, v in var.subnets : k => v if v.type == "private" }
@@ -392,121 +393,52 @@ resource "aws_security_group_rule" "nva_egress" {
 # route tables
 ####################################################
 
-# public
+# default
 #--------------------------
 
-# route tables
+# public
 
-resource "aws_route_table" "public_rtb_a" {
-  count  = length(local.public_subnets_a) > 0 ? 1 : 0
+resource "aws_route_table" "public_route_table" {
+  count  = length(local.public_subnets) > 0 ? 1 : 0
   vpc_id = aws_vpc.this.id
   tags = merge(var.tags,
     {
-      Name  = "${local.prefix}public-rtb-a"
+      Name  = "${local.prefix}rtb/public/${local.public_subnets[keys(local.public_subnets)[0]].az}"
       Scope = "public"
     }
   )
 }
 
-resource "aws_route_table" "public_rtb_b" {
-  count  = length(local.public_subnets_b) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}public-rtb-b"
-      Scope = "public"
-    }
-  )
-}
-
-resource "aws_route_table" "public_rtb_c" {
-  count  = length(local.public_subnets_c) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}public-rtb-c"
-      Scope = "public"
-    }
-  )
-}
-
-# associations
-
-resource "aws_route_table_association" "public_rta_a" {
-  for_each       = local.public_subnets_a
+resource "aws_route_table_association" "public_route_table" {
+  for_each       = local.public_subnets
   subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public_rtb_a[0].id
-}
-
-resource "aws_route_table_association" "public_rta_b" {
-  for_each       = local.public_subnets_b
-  subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public_rtb_b[0].id
-}
-
-resource "aws_route_table_association" "public_rta_c" {
-  for_each       = local.public_subnets_c
-  subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public_rtb_c[0].id
+  route_table_id = aws_route_table.public_route_table[0].id
 }
 
 # private
+
+resource "aws_route_table" "private_route_table" {
+  count  = length(local.private_subnets) > 0 ? 1 : 0
+  vpc_id = aws_vpc.this.id
+  tags = merge(var.tags,
+    {
+      Name  = "${local.prefix}rtb/private/${local.private_subnets[keys(local.private_subnets)[0]].az}"
+      Scope = "private"
+    }
+  )
+}
+
+resource "aws_route_table_association" "private_route_table" {
+  for_each       = local.private_subnets
+  subnet_id      = aws_subnet.private[each.key].id
+  route_table_id = aws_route_table.private_route_table[0].id
+}
+
+# custom
 #--------------------------
 
-# route tables
+# TODO: add custom route tables per subnet if subnet config custom_rt = true
 
-resource "aws_route_table" "private_rtb_a" {
-  count  = length(local.private_subnets_a) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}private-rtb-a"
-      Scope = "private"
-    }
-  )
-}
-
-resource "aws_route_table" "private_rtb_b" {
-  count  = length(local.private_subnets_b) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}private-rtb-b"
-      Scope = "private"
-    }
-  )
-}
-
-resource "aws_route_table" "private_rtb_c" {
-  count  = length(local.private_subnets_c) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}private-rtb-c"
-      Scope = "private"
-    }
-  )
-}
-
-# associations
-
-resource "aws_route_table_association" "private_rta_a" {
-  for_each       = local.private_subnets_a
-  subnet_id      = aws_subnet.private[each.key].id
-  route_table_id = aws_route_table.private_rtb_a[0].id
-}
-
-resource "aws_route_table_association" "private_rta_b" {
-  for_each       = local.private_subnets_b
-  subnet_id      = aws_subnet.private[each.key].id
-  route_table_id = aws_route_table.private_rtb_b[0].id
-}
-
-resource "aws_route_table_association" "private_rta_c" {
-  for_each       = local.private_subnets_c
-  subnet_id      = aws_subnet.private[each.key].id
-  route_table_id = aws_route_table.private_rtb_c[0].id
-}
 
 ####################################################
 # internet gateway
@@ -526,30 +458,48 @@ resource "aws_internet_gateway" "this" {
 # routes
 #--------------------------
 
+# ipv4
+
 resource "aws_route" "public_internet_route_a" {
   count                  = length(local.public_subnets_a) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.public_rtb_a[0].id
+  route_table_id         = aws_route_table.public_route_table[0].id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.this.id
-}
-
-resource "aws_route" "public_internet_route_a6" {
-  count                       = length(local.public_subnets_a) > 0 ? 1 : 0
-  route_table_id              = aws_route_table.public_rtb_a[0].id
-  destination_ipv6_cidr_block = "::/0"
-  gateway_id                  = aws_internet_gateway.this.id
 }
 
 resource "aws_route" "public_internet_route_b" {
   count                  = length(local.public_subnets_b) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.public_rtb_b[0].id
+  route_table_id         = aws_route_table.public_route_table[0].id
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = aws_internet_gateway.this.id
 }
 
-resource "aws_route" "public_internet_route_b6" {
+resource "aws_route" "public_internet_route_c" {
+  count                  = length(local.public_subnets_c) > 0 ? 1 : 0
+  route_table_id         = aws_route_table.public_route_table[0].id
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.this.id
+}
+
+# ipv6
+
+resource "aws_route" "public_internet_route_a_ipv6" {
+  count                       = length(local.public_subnets_a) > 0 ? 1 : 0
+  route_table_id              = aws_route_table.public_route_table[0].id
+  destination_ipv6_cidr_block = "::/0"
+  gateway_id                  = aws_internet_gateway.this.id
+}
+
+resource "aws_route" "public_internet_route_b_ipv6" {
   count                       = length(local.public_subnets_b) > 0 ? 1 : 0
-  route_table_id              = aws_route_table.public_rtb_b[0].id
+  route_table_id              = aws_route_table.public_route_table[0].id
+  destination_ipv6_cidr_block = "::/0"
+  gateway_id                  = aws_internet_gateway.this.id
+}
+
+resource "aws_route" "public_internet_route_c_ipv6" {
+  count                       = length(local.public_subnets_c) > 0 ? 1 : 0
+  route_table_id              = aws_route_table.public_route_table[0].id
   destination_ipv6_cidr_block = "::/0"
   gateway_id                  = aws_internet_gateway.this.id
 }
@@ -562,7 +512,7 @@ resource "aws_route" "public_internet_route_b6" {
 #--------------------------
 
 resource "aws_eip" "eip_natgw_a" {
-  count  = length(local.private_subnets_a) > 0 ? 1 : 0
+  count  = length(local.public_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
   domain = "vpc"
   tags = merge(var.tags,
     {
@@ -572,7 +522,7 @@ resource "aws_eip" "eip_natgw_a" {
 }
 
 resource "aws_eip" "eip_natgw_b" {
-  count  = length(local.private_subnets_b) > 0 ? 1 : 0
+  count  = length(local.public_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
   domain = "vpc"
   tags = merge(var.tags,
     {
@@ -582,7 +532,7 @@ resource "aws_eip" "eip_natgw_b" {
 }
 
 resource "aws_eip" "eip_natgw_c" {
-  count  = length(local.private_subnets_c) > 0 ? 1 : 0
+  count  = length(local.public_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
   domain = "vpc"
   tags = merge(var.tags,
     {
@@ -595,7 +545,7 @@ resource "aws_eip" "eip_natgw_c" {
 #--------------------------
 
 resource "aws_nat_gateway" "natgw_a" {
-  count         = length(local.private_subnets_a) > 0 ? 1 : 0
+  count         = length(local.public_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
   allocation_id = aws_eip.eip_natgw_a[0].id
   subnet_id     = aws_subnet.public[keys(local.public_subnets_a)[0]].id
   tags = merge(var.tags,
@@ -608,7 +558,7 @@ resource "aws_nat_gateway" "natgw_a" {
 }
 
 resource "aws_nat_gateway" "natgw_b" {
-  count         = length(local.private_subnets_b) > 0 ? 1 : 0
+  count         = length(local.public_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
   allocation_id = aws_eip.eip_natgw_b[0].id
   subnet_id     = aws_subnet.public[keys(local.public_subnets_b)[0]].id
   tags = merge(var.tags,
@@ -621,7 +571,7 @@ resource "aws_nat_gateway" "natgw_b" {
 }
 
 resource "aws_nat_gateway" "natgw_c" {
-  count         = length(local.private_subnets_c) > 0 ? 1 : 0
+  count         = length(local.public_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
   allocation_id = aws_eip.eip_natgw_c[0].id
   subnet_id     = aws_subnet.public[keys(local.public_subnets_c)[0]].id
   tags = merge(var.tags,
@@ -637,22 +587,22 @@ resource "aws_nat_gateway" "natgw_c" {
 #--------------------------
 
 resource "aws_route" "private_internet_route_a" {
-  count                  = length(local.private_subnets_a) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.private_rtb_a[0].id
+  count                  = length(local.private_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private_route_table[0].id
   nat_gateway_id         = aws_nat_gateway.natgw_a[0].id
   destination_cidr_block = "0.0.0.0/0"
 }
 
 resource "aws_route" "private_internet_route_b" {
-  count                  = length(local.private_subnets_b) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.private_rtb_b[0].id
+  count                  = length(local.private_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private_route_table[0].id
   nat_gateway_id         = aws_nat_gateway.natgw_b[0].id
   destination_cidr_block = "0.0.0.0/0"
 }
 
 resource "aws_route" "private_internet_route_c" {
-  count                  = length(local.private_subnets_c) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.private_rtb_c[0].id
+  count                  = length(local.private_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
+  route_table_id         = aws_route_table.private_route_table[0].id
   nat_gateway_id         = aws_nat_gateway.natgw_c[0].id
   destination_cidr_block = "0.0.0.0/0"
 }
@@ -664,20 +614,48 @@ resource "aws_route" "private_internet_route_c" {
 # dns zone
 
 resource "aws_route53_zone" "private" {
-  count = var.create_private_dns_zone && var.private_dns_zone_name != null ? 1 : 0
-  name  = var.private_dns_zone_name
+  count = var.private_dns_config.create_zone && var.private_dns_config.zone_name != null ? 1 : 0
+  name  = var.private_dns_config.zone_name
   vpc {
     vpc_id = aws_vpc.this.id
   }
+  dynamic "vpc" {
+    for_each = { for vpc_id in var.private_dns_config.vpc_associations : vpc_id => vpc_id if var.private_dns_config.create_zone && var.private_dns_config.zone_name != null }
+    content {
+      vpc_id = vpc.value
+    }
+  }
 }
 
-# association
+# dns namespace
 
-resource "aws_route53_zone_association" "private" {
-  for_each = { for vpc_id in var.private_dns_zone_vpc_associations : vpc_id => vpc_id if var.create_private_dns_zone && var.private_dns_zone_name != null }
-  zone_id  = aws_route53_zone.private[0].zone_id
-  vpc_id   = each.value
-}
+# resource "aws_service_discovery_private_dns_namespace" "this" {
+#   count       = var.private_dns_config.enable_service_discovery ? 1 : 0
+#   name        = var.private_dns_config.zone_name
+#   description = "Private DNS namespace for ${var.private_dns_config.zone_name}"
+#   vpc         = aws_vpc.this.id
+# }
+
+# # dns service
+
+# resource "aws_service_discovery_service" "dns" {
+#   name = "dns"
+
+#   dns_config {
+#     namespace_id = aws_service_discovery_private_dns_namespace.this[0].id
+
+#     dns_records {
+#       ttl  = 10
+#       type = "A"
+#     }
+
+#     routing_policy = "MULTIVALUE"
+#   }
+
+#   health_check_custom_config {
+#     failure_threshold = 1
+#   }
+# }
 
 ####################################################
 # bastion
@@ -723,23 +701,14 @@ module "bastion" {
 
 # public
 
-# resource "aws_route53_record" "bastion_public" {
-#   count   = var.bastion_config.enable && var.public_dns_zone_name != null ? 1 : 0
-#   zone_id = data.aws_route53_zone.public.0.zone_id
-#   name    = "bastion.eu.${data.aws_route53_zone.public.0.name}"
-#   type    = "A"
-#   ttl     = "300"
-#   records = [module.bastion.public_ips["${local.prefix}bastion-untrust"], ]
-# }
-
-# # private
-
-# resource "aws_route53_record" "bastion_private" {
-#   count   = var.bastion_config.enable && var.private_dns_zone_name != null ? 1 : 0
-#   zone_id = data.aws_route53_zone.private.0.zone_id
-#   name    = "bastion.eu.${data.aws_route53_zone.private.0.name}"
-#   type    = "A"
-#   ttl     = "300"
-#   records = [module.bastion.private_ips["${local.prefix}bastion-untrust"][0], ]
-# }
-
+resource "aws_route53_record" "bastion_public" {
+  count   = var.bastion_config.enable && var.bastion_config.public_dns_zone_name != null ? 1 : 0
+  zone_id = data.aws_route53_zone.public.0.zone_id
+  name = (var.bastion_config.dns_prefix != null ?
+    "${var.bastion_config.dns_prefix}.${data.aws_route53_zone.public.0.name}" :
+    "${local.prefix}bastion.${data.aws_route53_zone.public.0.name}"
+  )
+  type    = "A"
+  ttl     = "300"
+  records = [module.bastion[0].public_ips["${local.prefix}bastion-untrust"], ]
+}

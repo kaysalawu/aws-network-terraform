@@ -1,8 +1,5 @@
 locals {
-  # List of maps with key and route values
-  vpc_attachments_with_routes = chunklist(flatten([
-    for k, v in var.vpc_attachments : setproduct([{ key = k }], v.tgw_routes) if var.create_tgw && can(v.tgw_routes)
-  ]), 2)
+  transit_gateway_id = var.create_tgw ? aws_ec2_transit_gateway.this[0].id : var.transit_gateway_id
 
   tgw_default_route_table_tags_merged = merge(
     var.tags,
@@ -10,20 +7,11 @@ locals {
     var.tgw_default_route_table_tags,
   )
 
-  vpc_route_table_destination_cidr = flatten([
-    for k, v in var.vpc_attachments : [
-      for rtb_id in try(v.vpc_route_table_ids, []) : {
-        rtb_id = rtb_id
-        cidr   = v.tgw_destination_cidr
-        tgw_id = var.create_tgw ? aws_ec2_transit_gateway.this[0].id : v.tgw_id
-      }
-    ]
-  ])
   flattened_vpc_routes_ipv4 = flatten([
     for index, attachment in var.vpc_attachments : [
       for route_index, route in attachment.vpc_routes : [
         for cidr in route.ipv4_prefixes : {
-          key                         = "${route.name}-${cidr}"
+          key                         = "${attachment.name}-${route.name}-${cidr}"
           route_table_id              = route.route_table_id
           destination_cidr_block      = cidr
           destination_ipv6_cidr_block = null
@@ -31,11 +19,12 @@ locals {
       ]
     ]
   ])
+
   flattened_vpc_routes_ipv6 = flatten([
     for index, attachment in var.vpc_attachments : [
       for route_index, route in attachment.vpc_routes : [
         for cidr in route.ipv6_prefixes : {
-          key                         = "${route.name}-${cidr}"
+          key                         = "${attachment.name}-${route.name}-${cidr}"
           route_table_id              = route.route_table_id
           destination_cidr_block      = null
           destination_ipv6_cidr_block = cidr
@@ -43,29 +32,29 @@ locals {
       ]
     ]
   ])
+
   flattened_vpc_routes = concat(
     local.flattened_vpc_routes_ipv4,
     local.flattened_vpc_routes_ipv6,
   )
+
   flattened_transit_gateway_routes_ipv4 = flatten([
-    for index, attachment in var.vpc_attachments : [
-      for route_index, route in attachment.transit_gateway_routes : [
-        for cidr in route.ipv4_prefixes : {
-          key                    = "${route.name}-${cidr}"
-          destination_cidr_block = cidr
-          route_table_name       = route.route_table_name
-          blackhole              = try(route.blackhole, false)
-          attachment_name        = try(route.attachment_name, null)
-        }
-      ]
+    for route_index, route in var.transit_gateway_routes : [
+      for cidr in route.ipv4_prefixes : {
+        key                    = "${route.name}-${cidr}"
+        destination_cidr_block = cidr
+        route_table_name       = route.route_table_name
+        blackhole              = try(route.blackhole, false)
+        attachment_name        = try(route.attachment_name, null)
+      }
     ]
   ])
+
   flattened_transit_gateway_routes_ipv6 = []
   flattened_transit_gateway_routes = concat(
     local.flattened_transit_gateway_routes_ipv4,
     local.flattened_transit_gateway_routes_ipv6,
   )
-  transit_gateway_id = var.create_tgw ? aws_ec2_transit_gateway.this[0].id : var.transit_gateway_id
 }
 
 # ################################################################################
@@ -119,8 +108,14 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   ipv6_support           = each.value.ipv6_support
   appliance_mode_support = each.value.appliance_mode_support
 
-  transit_gateway_default_route_table_association = each.value.transit_gateway_default_route_table_association
-  transit_gateway_default_route_table_propagation = each.value.transit_gateway_default_route_table_propagation
+  transit_gateway_default_route_table_association = (
+    each.value.route_table == null ? true :
+    each.value.transit_gateway_default_route_table_association
+  )
+  transit_gateway_default_route_table_propagation = (
+    each.value.route_table == null ? true :
+    each.value.transit_gateway_default_route_table_propagation
+  )
 
   tags = merge(
     var.tags,
@@ -149,7 +144,8 @@ resource "aws_ec2_transit_gateway_route_table" "this" {
 
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
   for_each = { for index, attachment in var.vpc_attachments :
-    attachment.name => attachment if var.create_tgw && var.default_route_table_association == "disable"
+    attachment.name => attachment
+    if var.create_tgw && var.default_route_table_association == "disable" && attachment.route_table != null
   }
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table].id
@@ -159,7 +155,8 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
   for_each = { for index, attachment in var.vpc_attachments :
-    attachment.name => attachment if var.create_tgw && var.default_route_table_propagation == "disable"
+    attachment.name => attachment
+    if var.create_tgw && var.default_route_table_propagation == "disable" && attachment.route_table != null
   }
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table].id

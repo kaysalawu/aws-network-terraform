@@ -13,32 +13,47 @@ module "hub1" {
   use_ipv4_ipam_pool = false
   ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.hub1_region]
 
-  enable_ipv6        = local.enable_ipv6
-  ipv6_cidr          = local.hub1_ipv6_cidr
-  use_ipv6_ipam_pool = false
-  ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.hub1_region]
+  # enable_ipv6        = local.enable_ipv6
+  # ipv6_cidr          = local.hub1_ipv6_cidr
+  # use_ipv6_ipam_pool = false
+  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.hub1_region]
 
   subnets = local.hub1_subnets
 
-  public_dns_zone_name    = local.domain_name
-  private_dns_zone_name   = local.cloud_dns_zone
-  create_private_dns_zone = true
+  create_nat_gateway = true
 
-  private_dns_zone_vpc_associations = [
-    module.spoke1.vpc_id,
-    module.spoke2.vpc_id,
-    module.spoke3.vpc_id,
-  ]
+  private_dns_config = {
+    create_zone = true
+    zone_name   = local.cloud_dns_zone
+    vpc_associations = [
+      module.spoke1.vpc_id,
+      module.spoke2.vpc_id,
+      module.spoke3.vpc_id,
+    ]
+  }
 
   bastion_config = {
     enable               = true
     key_name             = module.common.key_pair_name[local.hub1_region]
     private_ips          = [local.hub1_bastion_addr]
     iam_instance_profile = module.common.iam_instance_profile.name
+    public_dns_zone_name = local.domain_name
+    dns_prefix           = "bastion.hub1.eu"
   }
 
   depends_on = [
     module.common,
+  ]
+}
+
+resource "time_sleep" "hub1" {
+  triggers = {
+    nat_gateways        = jsonencode(module.hub1.nat_gateways)
+    internet_gateway_id = module.hub1.internet_gateway_id
+  }
+  create_duration = "90s"
+  depends_on = [
+    module.hub1
   ]
 }
 
@@ -62,7 +77,11 @@ module "hub1_vm" {
       subnet_id          = module.hub1.private_subnet_ids["MainSubnet"]
       private_ips        = [local.hub1_vm_addr, ]
       security_group_ids = [module.hub1.ec2_security_group_id, ]
+      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.hub1_vm_hostname}.${local.region1_code}" }
     }
+  ]
+  depends_on = [
+    time_sleep.hub1,
   ]
 }
 

@@ -110,7 +110,7 @@ variable "tgw_default_route_table_tags" {
 # ################################################################################
 
 variable "vpc_attachments" {
-  description = "A map of VPC attachments to create with the EC2 Transit Gateway"
+  description = "A list of VPC attachments to create with the EC2 Transit Gateway"
   type = list(object({
     name                   = string
     route_table            = optional(string, null)
@@ -130,25 +130,16 @@ variable "vpc_attachments" {
       ipv6_prefixes  = optional(list(string), [])
       route_table_id = string
     })), [])
-
-    transit_gateway_routes = optional(list(object({
-      route_table_name = string
-      name             = string
-      ipv4_prefixes    = optional(list(string), [])
-      blackhole        = optional(bool, false)
-      attachment_name  = optional(string, null)
-    })), [])
   }))
   default = []
 
   validation {
     condition = alltrue([
-      for attachment in var.vpc_attachments : alltrue([
-        for route in attachment.transit_gateway_routes :
-        !(route.blackhole && route.attachment_name != null)
-      ])
+      for attachment in var.vpc_attachments :
+      !(attachment.route_table != null &&
+      (attachment.transit_gateway_default_route_table_association || attachment.transit_gateway_default_route_table_propagation))
     ])
-    error_message = "Validation failed: If 'blackhole' is true in 'transit_gateway_routes', 'attachment_name' must not be specified, and vice versa."
+    error_message = "Validation failed: If 'route_table' is specified, both 'transit_gateway_default_route_table_association' and 'transit_gateway_default_route_table_propagation' must be set to false."
   }
 }
 
@@ -170,23 +161,38 @@ variable "route_tables" {
   default = []
 }
 
-# variable "create_tgw_routes" {
-#   description = "Controls if TGW Route Table / Routes should be created"
-#   type        = bool
-#   default     = true
-# }
+variable "transit_gateway_routes" {
+  description = "A list of transit gateway routes to create"
+  type = list(object({
+    route_table_name = string
+    name             = string
+    ipv4_prefixes    = optional(list(string), [])
+    blackhole        = optional(bool, false)
+    attachment_name  = optional(string, null)
+  }))
+  default = []
 
-# variable "transit_gateway_route_table_id" {
-#   description = "Identifier of EC2 Transit Gateway Route Table to use with the Target Gateway when reusing it between multiple TGWs"
-#   type        = string
-#   default     = null
-# }
+  validation {
+    condition = alltrue([
+      for route in var.transit_gateway_routes :
+      !(route.blackhole && route.attachment_name != null)
+    ])
+    error_message = "Validation failed: If 'blackhole' is true in 'transit_gateway_routes', 'attachment_name' must not be specified, and vice versa."
+  }
+}
 
-# variable "tgw_route_table_tags" {
-#   description = "Additional tags for the TGW route table"
-#   type        = map(string)
-#   default     = {}
-# }
+
+variable "transit_gateway_route_table_id" {
+  description = "Identifier of EC2 Transit Gateway Route Table to use with the Target Gateway when reusing it between multiple TGWs"
+  type        = string
+  default     = null
+}
+
+variable "tgw_route_table_tags" {
+  description = "Additional tags for the TGW route table"
+  type        = map(string)
+  default     = {}
+}
 
 ################################################################################
 # Resource Access Manager

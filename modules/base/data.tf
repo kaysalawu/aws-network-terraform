@@ -17,7 +17,7 @@ data "aws_ami" "ubuntu" {
 }
 
 data "aws_route53_zone" "public" {
-  count        = var.public_dns_zone_name != null ? 1 : 0
-  name         = "${var.public_dns_zone_name}."
+  count        = var.bastion_config.enable && var.bastion_config.public_dns_zone_name != null ? 1 : 0
+  name         = "${var.bastion_config.public_dns_zone_name}."
   private_zone = false
 }

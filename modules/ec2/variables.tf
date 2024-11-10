@@ -77,6 +77,12 @@ variable "interfaces" {
     security_group_ids = optional(list(string), [])
     ipv6_addresses     = optional(list(string), [])
     create_public_ip   = optional(bool, false)
+    dns_config = optional(object({
+      zone_name = optional(string, null)
+      name      = optional(string, null)
+      type      = optional(string, "A")
+      ttl       = optional(number, 300)
+    }), {})
   }))
   default = []
 }

@@ -1,9 +1,4 @@
 
-variable "resource_group" {
-  description = "The name of the resource group in which the route table will be created"
-  type        = string
-}
-
 variable "prefix" {
   description = "A short prefix to identify the resource"
   type        = string
@@ -15,8 +10,8 @@ variable "tags" {
   default     = {}
 }
 
-variable "location" {
-  description = "The location/region where the route table will be created"
+variable "region" {
+  description = "The region where the route table will be created"
   type        = string
 }
 
@@ -25,9 +20,10 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
-variable "bgp_route_propagation_enabled" {
-  type    = bool
-  default = true
+variable "route_table_id" {
+  description = "The ID of the route table"
+  type        = string
+  default     = null
 }
 
 variable "routes" {

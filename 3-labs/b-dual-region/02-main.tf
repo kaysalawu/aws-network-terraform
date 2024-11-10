@@ -72,34 +72,6 @@ locals {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
     "region2" = { name = local.region2, dns_zone = local.region2_dns_zone }
   }
-  region1_default_udr_destinations = [
-    { name = "default-region1", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "defaultv6-region1", address_prefix = ["::/0"], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 }
-  ]
-  spoke2_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "hub1", address_prefix = [local.hub1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "hub1v6", address_prefix = [local.hub1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-  ])
-  hub1_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "spoke1", address_prefix = [local.spoke1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke2", address_prefix = [local.spoke2_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke1v6", address_prefix = [local.spoke1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-    { name = "spoke2v6", address_prefix = [local.spoke2_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-  ])
-  region2_default_udr_destinations = [
-    { name = "default-region2", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "defaultv6-region2", address_prefix = ["::/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 }
-  ]
-  spoke5_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "hub2", address_prefix = [local.hub2_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "hub2v6", address_prefix = [local.hub2_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-  ])
-  hub2_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "spoke4", address_prefix = [local.spoke4_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke5", address_prefix = [local.spoke5_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke4v6", address_prefix = [local.spoke4_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-    { name = "spoke5v6", address_prefix = [local.spoke5_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-  ])
 
   hub1_features = {
     config_nva = {
@@ -274,6 +246,13 @@ module "probe_vm_cloud_init" {
 ####################################################
 
 # branch1
+
+resource "aws_eip" "branch1_nva" {
+  domain = "vpc"
+  tags = {
+    Name = "${local.branch1_prefix}nva"
+  }
+}
 
 ####################################################
 # firewall policy
