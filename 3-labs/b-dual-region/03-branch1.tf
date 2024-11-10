@@ -68,7 +68,7 @@ module "branch1_dns" {
   availability_zone    = "${local.branch1_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.branch1_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(local.branch1_unbound_startup)
   tags                 = local.branch1_tags
 
@@ -84,6 +84,7 @@ module "branch1_dns" {
     time_sleep.branch1,
   ]
 }
+
 resource "time_sleep" "branch1_dns" {
   create_duration = "120s"
   depends_on = [
@@ -101,7 +102,7 @@ module "branch1_vm" {
   availability_zone    = "${local.branch1_region}a"
   iam_instance_profile = module.common.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.branch1_region]
+  key_name             = module.common.key_pair_name[local.region1]
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.branch1_tags
 
@@ -124,7 +125,7 @@ module "branch1_vm" {
 
 locals {
   branch1_files = {
-    "output/branch1Dns.sh" = local.branch1_unbound_startup
+    "output/branch1-dns.sh" = local.branch1_unbound_startup
   }
 }
 

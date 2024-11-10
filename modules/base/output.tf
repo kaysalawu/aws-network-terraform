@@ -36,7 +36,7 @@ output "bastion_security_group_id" {
 }
 
 output "nva_security_group_id" {
-  value = aws_security_group.bastion_sg.id
+  value = aws_security_group.nva_sg.id
 }
 
 output "ec2_security_group_id" {

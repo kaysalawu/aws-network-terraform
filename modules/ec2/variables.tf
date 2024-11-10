@@ -76,8 +76,12 @@ variable "interfaces" {
     private_ips        = optional(list(string), [])
     security_group_ids = optional(list(string), [])
     ipv6_addresses     = optional(list(string), [])
-    create_public_ip   = optional(bool, false)
+    create_eip         = optional(bool, false)
+    eip_id             = optional(string, null)
+    public_ip          = optional(string, null)
+    source_dest_check  = optional(bool, true)
     dns_config = optional(object({
+      public    = optional(string, false)
       zone_name = optional(string, null)
       name      = optional(string, null)
       type      = optional(string, "A")
@@ -85,4 +89,10 @@ variable "interfaces" {
     }), {})
   }))
   default = []
+}
+
+variable "source_dest_check" {
+  description = "enable/disable source/dest check"
+  type        = bool
+  default     = null
 }

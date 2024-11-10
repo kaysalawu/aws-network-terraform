@@ -609,7 +609,7 @@ module "bastion" {
       subnet_id          = aws_subnet.public["UntrustSubnet"].id
       private_ips        = var.bastion_config.private_ips
       security_group_ids = [aws_security_group.bastion_sg.id, ]
-      create_public_ip   = true
+      create_eip         = true
     }
   ]
 }
