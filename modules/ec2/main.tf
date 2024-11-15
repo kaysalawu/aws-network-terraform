@@ -23,7 +23,7 @@ resource "aws_network_interface" "this" {
 # elastic ip
 
 resource "aws_eip" "this" {
-  for_each = { for interface in var.interfaces : interface.name => interface if interface.create_eip && interface.eip_id == null }
+  for_each = { for interface in var.interfaces : interface.name => interface if interface.create_eip && interface.eip_tag_name == null }
   domain   = "vpc"
 
   tags = merge(var.tags,
@@ -31,10 +31,13 @@ resource "aws_eip" "this" {
       Name = each.value.name
     }
   )
+  depends_on = [
+    data.aws_eip.this,
+  ]
 }
 
 resource "aws_eip_association" "new" {
-  for_each             = { for interface in var.interfaces : interface.name => interface if interface.create_eip && interface.eip_id == null }
+  for_each             = { for interface in var.interfaces : interface.name => interface if interface.create_eip && interface.eip_tag_name == null }
   instance_id          = aws_network_interface.this[each.key].id == null ? aws_instance.this.id : null
   network_interface_id = aws_network_interface.this[each.key].id
   private_ip_address   = length(each.value.private_ips) > 0 ? each.value.private_ips[0] : null
@@ -42,12 +45,15 @@ resource "aws_eip_association" "new" {
 }
 
 resource "aws_eip_association" "existing" {
-  for_each             = { for interface in var.interfaces : interface.name => interface if interface.eip_id != null }
+  for_each             = { for interface in var.interfaces : interface.name => interface if interface.eip_tag_name != null }
   instance_id          = aws_network_interface.this[each.key].id == null ? aws_instance.this.id : null
   network_interface_id = aws_network_interface.this[each.key].id
   private_ip_address   = length(each.value.private_ips) > 0 ? each.value.private_ips[0] : null
-  allocation_id        = each.value.eip_id
-  public_ip            = each.value.eip_id != null ? each.value.public_ip : null
+  allocation_id        = data.aws_eip.this[each.key].id
+  public_ip            = each.value.eip_tag_name != null ? each.value.public_ip : null
+  depends_on = [
+    aws_eip.this,
+  ]
 }
 
 ####################################################
@@ -123,6 +129,9 @@ resource "aws_route53_record" "public" {
       zone_id,
     ]
   }
+  depends_on = [
+    aws_instance.this,
+  ]
 }
 
 

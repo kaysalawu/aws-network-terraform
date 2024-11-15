@@ -78,6 +78,7 @@ variable "interfaces" {
     ipv6_addresses     = optional(list(string), [])
     create_eip         = optional(bool, false)
     eip_id             = optional(string, null)
+    eip_tag_name       = optional(string, null)
     public_ip          = optional(string, null)
     source_dest_check  = optional(bool, true)
     dns_config = optional(object({

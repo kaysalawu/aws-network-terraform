@@ -127,7 +127,7 @@ module "branch1_nva" {
       subnet_id          = module.branch1.public_subnet_ids["UntrustSubnet"]
       private_ips        = [local.branch1_nva_untrust_addr, ]
       security_group_ids = [module.branch1.nva_security_group_id, ]
-      eip_id             = aws_eip.branch1_nva.id
+      eip_tag_name       = "${local.branch1_prefix}nva"
       source_dest_check  = false
       dns_config         = { public = true, zone_name = local.domain_name, name = "branch1-nva.${local.region1_code}" }
     },
