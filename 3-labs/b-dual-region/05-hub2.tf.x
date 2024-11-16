@@ -74,7 +74,7 @@ module "hub2_vm" {
   interfaces = [
     {
       name               = "${local.hub2_prefix}vm-main"
-      subnet_id          = module.hub2.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.hub2.subnet_ids["MainSubnet"]
       private_ips        = [local.hub2_vm_addr, ]
       security_group_ids = [module.hub2.ec2_security_group_id, ]
       dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.hub2_vm_hostname}.${local.region2_code}" }

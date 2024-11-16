@@ -130,6 +130,7 @@ resource "aws_route53_record" "public" {
     ]
   }
   depends_on = [
+    aws_network_interface.this,
     aws_instance.this,
   ]
 }

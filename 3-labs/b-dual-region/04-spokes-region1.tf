@@ -22,6 +22,11 @@ module "spoke1" {
 
   subnets = local.spoke1_subnets
 
+  route_table_config = [
+    { scope = "private", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "private"] },
+    { scope = "public", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "public"] },
+  ]
+
   depends_on = [
     module.common,
   ]
@@ -42,7 +47,7 @@ module "spoke1_vm" {
   interfaces = [
     {
       name               = "${local.spoke1_prefix}vm-main"
-      subnet_id          = module.spoke1.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke1.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke1_vm_addr, ]
       security_group_ids = [module.spoke1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke1_vm_hostname}.${local.region1_code}" }
@@ -76,6 +81,11 @@ module "spoke2" {
 
   subnets = local.spoke2_subnets
 
+  route_table_config = [
+    { scope = "private", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "private"] },
+    { scope = "public", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "public"] },
+  ]
+
   depends_on = [
     module.common,
   ]
@@ -96,7 +106,7 @@ module "spoke2_vm" {
   interfaces = [
     {
       name               = "${local.spoke2_prefix}vm-main"
-      subnet_id          = module.spoke2.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke2.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke2_vm_addr, ]
       security_group_ids = [module.spoke2.ec2_security_group_id, ]
       dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke2_vm_hostname}.${local.region1_code}" }
@@ -130,6 +140,28 @@ module "spoke3" {
 
   subnets = local.spoke3_subnets
 
+  nat_config = [
+    { scope = "public", subnet = "UntrustSubnet", },
+  ]
+
+  route_table_config = [
+    {
+      scope   = "private"
+      subnets = [for k, v in local.spoke3_subnets : k if v.scope == "private"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+      ]
+    },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.spoke3_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
+  ]
+
   depends_on = [
     module.common,
   ]
@@ -150,7 +182,7 @@ module "spoke3_vm" {
   interfaces = [
     {
       name               = "${local.spoke3_prefix}vm-main"
-      subnet_id          = module.spoke3.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke3.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke3_vm_addr, ]
       security_group_ids = [module.spoke3.ec2_security_group_id, ]
       dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke3_vm_hostname}.${local.region1_code}" }

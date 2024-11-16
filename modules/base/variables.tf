@@ -150,12 +150,14 @@ variable "dhcp_options" {
 variable "subnets" {
   description = "A map of subnet configurations"
   type = map(object({
-    cidr         = string
-    ipv6_cidr    = optional(string)
-    ipv6_newbits = optional(number, 8)
-    ipv6_netnum  = optional(string, 0)
-    az           = optional(string, "a")
-    type         = optional(string, "private")
+    cidr          = string
+    ipv6_cidr     = optional(string, null)
+    ipv6_newbits  = optional(number, 8)
+    ipv6_netnum   = optional(string, 0)
+    az            = optional(string, "a")
+    scope         = optional(string, "private")
+    public_natgw  = optional(bool, false)
+    private_natgw = optional(bool, false)
 
     map_public_ip_on_launch = optional(bool, true)
   }))
@@ -210,8 +212,47 @@ variable "private_dns_config" {
   }
 }
 
-variable "create_nat_gateway" {
-  description = "Should be true to create a NAT Gateway for each private subnet"
-  type        = bool
-  default     = false
+variable "nat_config" {
+  description = "A list of NAT configuration"
+  type = list(object({
+    scope      = string
+    subnet     = string
+    private_ip = optional(string, null)
+  }))
+  default = []
 }
+
+variable "route_table_config" {
+  description = "A list of route table configuration"
+  type = list(object({
+    scope   = string
+    subnets = optional(list(string), [])
+    routes = optional(list(object({
+      ipv4_cidr          = optional(string, null)
+      ipv6_cidr          = optional(string, null)
+      nat_gateway        = optional(bool, false)
+      internet_gateway   = optional(bool, false)
+      nat_gateway_subnet = optional(string, null)
+    })), [])
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for rt in var.route_table_config : alltrue([
+        for route in rt.routes : !(route.ipv4_cidr != null && route.ipv6_cidr != null)
+      ])
+    ])
+    error_message = "Only one of ipv4_cidr or ipv6_cidr can be specified per route."
+  }
+
+  validation {
+    condition = alltrue([
+      for rt in var.route_table_config : alltrue([
+        for route in rt.routes : !(route.ipv6_cidr != null && route.nat_gateway == true)
+      ])
+    ])
+    error_message = "If ipv6_cidr is specified, nat_gateway cannot be true in any route."
+  }
+}
+

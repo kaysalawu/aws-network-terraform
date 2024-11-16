@@ -253,151 +253,11 @@ module "probe_vm_cloud_init" {
 
 # branch1
 
-resource "aws_eip" "branch1_nva" {
+resource "aws_eip" "branch1_nva_untrust" {
   domain = "vpc"
   tags = {
-    Name = "${local.branch1_prefix}nva"
+    Name = "${local.branch1_prefix}nva-untrust"
   }
-}
-
-####################################################
-# firewall policy
-####################################################
-
-# policy
-
-####################################################
-# nva
-####################################################
-
-# hub1
-/*
-locals {
-  hub1_nva_route_map_onprem    = "ONPREM"
-  hub1_nva_route_map_aws       = "AWS"
-  hub1_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
-  hub1_nva_vars = {
-    LOCAL_ASN = local.hub1_nva_asn
-    LOOPBACK0 = local.hub1_nva_loopback0
-    LOOPBACKS = []
-
-    PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} deny ${local.hub1_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
-    ]
-
-    ROUTE_MAPS = [
-      # "match ip address prefix-list all",
-      # "set ip next-hop ${local.hub1_nva_ilb_trust_addr}"
-    ]
-    STATIC_ROUTES = [
-      { prefix = "0.0.0.0/0", next_hop = local.hub1_default_gw_trust },
-      # { prefix = "${module.tgw1.router_bgp_ip0}/32", next_hop = local.hub1_default_gw_trust },
-      # { prefix = "${module.tgw1.router_bgp_ip1}/32", next_hop = local.hub1_default_gw_trust },
-      { prefix = local.spoke2_cidr[0], next_hop = local.hub1_default_gw_trust },
-    ]
-    TUNNELS = []
-    BGP_SESSIONS_IPV4 = [
-      {
-        peer_asn        = "module.tgw1.bgp_asn"
-        peer_ip         = "module.tgw1.router_bgp_ip0"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-      {
-        peer_asn        = "module.tgw1.bgp_asn"
-        peer_ip         = "module.tgw1.router_bgp_ip1"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-    ]
-    BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub1_subnets["MainSubnet"].cidr[0],
-      local.spoke2_cidr[0],
-    ]
-  }
-  hub1_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub1_nva_vars, {
-    TARGETS                   = local.vm_script_targets
-    TARGETS_LIGHT_TRAFFIC_GEN = []
-    TARGETS_HEAVY_TRAFFIC_GEN = []
-    ENABLE_TRAFFIC_GEN        = false
-    IPTABLES_RULES = [
-      "sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 50443 -j DNAT --to-destination ${local.spoke1_vm_addr}:8080",
-      "sudo iptables -A FORWARD -p tcp -d ${local.spoke1_vm_addr} --dport 8080 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT",
-    ]
-    FRR_CONF                 = templatefile("../../scripts/frr/frr.conf", merge(local.hub1_nva_vars, {}))
-    STRONGSWAN_VTI_SCRIPT    = ""
-    STRONGSWAN_IPSEC_SECRETS = ""
-    STRONGSWAN_IPSEC_CONF    = ""
-    STRONGSWAN_AUTO_RESTART  = ""
-  }))
-}
-
-# hub2
-
-locals {
-  hub2_nva_route_map_onprem    = "ONPREM"
-  hub2_nva_route_map_aws       = "AWS"
-  hub2_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
-  hub2_nva_vars = {
-    LOCAL_ASN = local.hub2_nva_asn
-    LOOPBACK0 = local.hub2_nva_loopback0
-    LOOPBACKS = []
-
-    PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} deny ${local.hub2_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
-    ]
-
-    ROUTE_MAPS = [
-      # "match ip address prefix-list all",
-      # "set ip next-hop ${local.hub2_nva_ilb_trust_addr}"
-    ]
-    STATIC_ROUTES = [
-      { prefix = "0.0.0.0/0", next_hop = local.hub2_default_gw_trust },
-      # { prefix = "${module.tgw2.router_bgp_ip0}/32", next_hop = local.hub2_default_gw_trust },
-      # { prefix = "${module.tgw2.router_bgp_ip1}/32", next_hop = local.hub2_default_gw_trust },
-      { prefix = local.spoke5_cidr[0], next_hop = local.hub2_default_gw_trust },
-    ]
-    TUNNELS = []
-    BGP_SESSIONS_IPV4 = [
-      {
-        peer_asn        = "module.tgw2.bgp_asn"
-        peer_ip         = "module.tgw2.router_bgp_ip0"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-      {
-        peer_asn        = "module.tgw2.bgp_asn"
-        peer_ip         = "module.tgw2.router_bgp_ip1"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-    ]
-    BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub2_subnets["MainSubnet"].cidr[0],
-      local.spoke5_cidr[0],
-    ]
-  }
-  hub2_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub2_nva_vars, {
-    TARGETS                   = local.vm_script_targets
-    TARGETS_LIGHT_TRAFFIC_GEN = []
-    TARGETS_HEAVY_TRAFFIC_GEN = []
-    ENABLE_TRAFFIC_GEN        = false
-    IPTABLES_RULES = [
-      "sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 50443 -j DNAT --to-destination ${local.spoke4_vm_addr}:8080",
-      "sudo iptables -A FORWARD -p tcp -d ${local.spoke4_vm_addr} --dport 8080 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT",
-    ]
-    FRR_CONF                 = templatefile("../../scripts/frr/frr.conf", merge(local.hub2_nva_vars, {}))
-    STRONGSWAN_VTI_SCRIPT    = ""
-    STRONGSWAN_IPSEC_SECRETS = ""
-    STRONGSWAN_IPSEC_CONF    = ""
-    STRONGSWAN_AUTO_RESTART  = ""
-  }))
 }
 
 ####################################################
@@ -411,8 +271,6 @@ locals {
     "output/startup-probe.sh"       = templatefile("../../scripts/startup.sh", local.probe_init_vars)
     "output/probe-cloud-config.yml" = module.probe_vm_cloud_init.cloud_config
     "output/vm-cloud-config.yml"    = module.vm_cloud_init.cloud_config
-    "output/hub1-linux-nva.sh"      = local.hub1_linux_nva_init
-    "output/hub2-linux-nva.sh"      = local.hub2_linux_nva_init
   }
 }
 
@@ -421,4 +279,3 @@ resource "local_file" "main_files" {
   filename = each.key
   content  = each.value
 }
-*/

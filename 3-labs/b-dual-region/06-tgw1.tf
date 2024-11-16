@@ -28,28 +28,28 @@ module "tgw1" {
       name        = module.hub1.vpc_name
       route_table = "hub"
       vpc_id      = module.hub1.vpc_id
-      subnet_ids  = [module.hub1.private_subnet_ids["ManagementSubnet"], ]
+      subnet_ids  = [module.hub1.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
-        { name = "private-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub1.private_route_table_id },
-        { name = "public-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub1.public_route_table_id },
+        { name = "private-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub1.route_table_ids["private"] },
+        { name = "public-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub1.route_table_ids["public"] },
       ]
     },
     {
       name        = module.spoke1.vpc_name
       route_table = "vpc"
       vpc_id      = module.spoke1.vpc_id
-      subnet_ids  = [module.spoke1.private_subnet_ids["ManagementSubnet"], ]
+      subnet_ids  = [module.spoke1.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
-        { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke1.private_route_table_id },
+        { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke1.route_table_ids["private"] },
       ]
     },
     {
       name        = module.spoke2.vpc_name
       route_table = "vpc"
       vpc_id      = module.spoke2.vpc_id
-      subnet_ids  = [module.spoke2.private_subnet_ids["ManagementSubnet"], ]
+      subnet_ids  = [module.spoke2.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
-        { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke2.private_route_table_id },
+        { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke2.route_table_ids["private"] },
       ]
     }
   ]

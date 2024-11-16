@@ -1,17 +1,44 @@
 
 locals {
-  prefix = var.prefix == "" ? "" : format("%s-", var.prefix)
+  prefix          = var.prefix == "" ? "" : format("%s-", var.prefix)
+  public_subnets  = { for k, v in var.subnets : k => v if v.scope == "public" }
+  private_subnets = { for k, v in var.subnets : k => v if v.scope == "private" }
 
-  ec2_external_ingress_ports = ["80", "8080", "443", "3000", ]
+  route_table_subnet_association = flatten([for k, v in local.route_table_subnet_association_ : v])
+  route_table_subnet_association_ = {
+    for rt in var.route_table_config : rt.scope => [
+      for subnet in rt.subnets : {
+        subnet_id      = aws_subnet.this[subnet].id
+        route_table_id = aws_route_table.this[rt.scope].id
+      }
+    ]
+  }
+  routes = flatten([
+    for rt in var.route_table_config : [
+      for route in rt.routes : {
+        scope                       = rt.scope
+        destination_cidr_block      = try(route.ipv4_cidr, null)
+        destination_ipv6_cidr_block = try(route.ipv6_cidr, null)
 
-  public_subnets    = { for k, v in var.subnets : k => v if v.type == "public" }
-  private_subnets   = { for k, v in var.subnets : k => v if v.type == "private" }
-  public_subnets_a  = { for k, v in local.public_subnets : k => v if v.az == "a" }
-  public_subnets_b  = { for k, v in local.public_subnets : k => v if v.az == "b" }
-  public_subnets_c  = { for k, v in local.public_subnets : k => v if v.az == "c" }
-  private_subnets_a = { for k, v in local.private_subnets : k => v if v.az == "a" }
-  private_subnets_b = { for k, v in local.private_subnets : k => v if v.az == "b" }
-  private_subnets_c = { for k, v in local.private_subnets : k => v if v.az == "c" }
+        gateway_id     = route.internet_gateway ? aws_internet_gateway.this.id : null
+        nat_gateway_id = route.nat_gateway ? aws_nat_gateway.natgw[route.nat_gateway_subnet].id : null
+
+        route_table_id             = try(aws_route_table.this[rt.scope].id, null)
+        destination_prefix_list_id = try(route.destination_prefix_list_id, null)
+        carrier_gateway_id         = try(route.carrier_gateway_id, null)
+        core_network_arn           = try(route.core_network_arn, null)
+        egress_only_gateway_id     = try(route.egress_only_gateway_id, null)
+        local_gateway_id           = try(route.local_gateway_id, null)
+        network_interface_id       = try(route.network_interface_id, null)
+        transit_gateway_id         = try(route.transit_gateway_id, null)
+        vpc_endpoint_id            = try(route.vpc_endpoint_id, null)
+        vpc_peering_connection_id  = try(route.vpc_peering_connection_id, null)
+    }]
+  ])
+}
+
+output "test" {
+  value = local.routes
 }
 
 ####################################################
@@ -90,16 +117,14 @@ resource "aws_vpc_dhcp_options_association" "this" {
 # subnets
 ####################################################
 
-# public
-
-resource "aws_subnet" "public" {
-  for_each          = { for k, v in var.subnets : k => v if v.type == "public" }
+resource "aws_subnet" "this" {
+  for_each          = var.subnets
   availability_zone = "${var.region}${each.value.az}"
   vpc_id            = aws_vpc.this.id
   cidr_block        = each.value.cidr
 
   ipv6_cidr_block = (
-    var.enable_ipv6 ?
+    var.enable_ipv6 && each.value.ipv6_cidr != null ?
     cidrsubnet(aws_vpc.this.ipv6_cidr_block, each.value.ipv6_newbits, each.value.ipv6_netnum) :
     null
   )
@@ -108,255 +133,32 @@ resource "aws_subnet" "public" {
   tags = merge(var.tags,
     {
       Name  = each.key
-      Scope = "public"
+      Scope = each.value.scope
+      Az    = each.value.az
     }
   )
-}
-
-resource "aws_subnet" "private" {
-  for_each          = { for k, v in var.subnets : k => v if v.type == "private" }
-  availability_zone = "${var.region}${each.value.az}"
-  vpc_id            = aws_vpc.this.id
-  cidr_block        = each.value.cidr
-
-  ipv6_cidr_block = (
-    var.enable_ipv6 ?
-    cidrsubnet(aws_vpc.this.ipv6_cidr_block, each.value.ipv6_newbits, each.value.ipv6_netnum) :
-    null
-  )
-
-  tags = merge(var.tags,
-    {
-      Name  = each.key
-      Scope = "private"
-    }
-  )
-}
-
-####################################################
-# security group
-####################################################
-
-# TODO: use prefix lists for private prefixes
-
-# bastion
-#--------------------------
-
-# security group
-
-resource "aws_security_group" "bastion_sg" {
-  name   = "${local.prefix}bastion-sg"
-  vpc_id = aws_vpc.this.id
-
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}bastion-sg"
-      Scope = "public"
-    }
-  )
-}
-
-# ingress - external (ssh)
-
-resource "aws_security_group_rule" "bastion_ingress_external_ssh" {
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_sg.id
-}
-
-# egress - all
-
-resource "aws_security_group_rule" "bastion_egress_all" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.bastion_sg.id
-}
-
-# ec2
-#--------------------------
-
-resource "aws_security_group" "ec2_sg" {
-  name   = "${local.prefix}ec2-sg"
-  vpc_id = aws_vpc.this.id
-
-  tags = {
-    Name  = "${local.prefix}ec2-sg"
-    Scope = "private"
-  }
-}
-
-# ingress - internal (all)
-
-resource "aws_security_group_rule" "ec2_ingress_internal_all" {
-  type              = "ingress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = var.private_prefixes_ipv4
-  ipv6_cidr_blocks  = var.private_prefixes_ipv6
-  security_group_id = aws_security_group.ec2_sg.id
-}
-
-# ingress - external (tcp)
-
-resource "aws_security_group_rule" "ec2_ingress_external_tcp" {
-  for_each          = toset(local.ec2_external_ingress_ports)
-  type              = "ingress"
-  from_port         = 0
-  to_port           = each.value
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_sg.id
-}
-
-# egress - all
-
-resource "aws_security_group_rule" "ec2_egress_all" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.ec2_sg.id
-}
-
-# nva
-#--------------------------
-
-# security group
-
-resource "aws_security_group" "nva_sg" {
-  name   = "${local.prefix}nva-sg"
-  vpc_id = aws_vpc.this.id
-
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}nva-sg"
-      Scope = "public"
-    }
-  )
-}
-
-# ingress - external (ssh)
-
-resource "aws_security_group_rule" "nva_ingress_external_ssh" {
-  type              = "ingress"
-  from_port         = 22
-  to_port           = 22
-  protocol          = "tcp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_sg.id
-}
-
-# ingress - external (ike)
-
-resource "aws_security_group_rule" "nva_ingress_external_ike" {
-  type              = "ingress"
-  from_port         = 500
-  to_port           = 500
-  protocol          = "udp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_sg.id
-}
-
-# ingress - external (nat-t)
-
-resource "aws_security_group_rule" "nva_ingress_external_nat_t" {
-  type              = "ingress"
-  from_port         = 4500
-  to_port           = 4500
-  protocol          = "udp"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_sg.id
-}
-
-# ingress - internal (all)
-
-resource "aws_security_group_rule" "nva_internal_ingress_all" {
-  type              = "ingress"
-  from_port         = "0"
-  to_port           = "0"
-  protocol          = "-1"
-  cidr_blocks       = var.private_prefixes_ipv4
-  ipv6_cidr_blocks  = var.private_prefixes_ipv6
-  security_group_id = aws_security_group.nva_sg.id
-}
-
-# egress - all
-
-resource "aws_security_group_rule" "nva_egress_all" {
-  type              = "egress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  security_group_id = aws_security_group.nva_sg.id
 }
 
 ####################################################
 # route tables
 ####################################################
 
-# default
-#--------------------------
-
-# public
-
-resource "aws_route_table" "public_route_table" {
-  count  = length(local.public_subnets) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
+resource "aws_route_table" "this" {
+  for_each = { for v in var.route_table_config : v.scope => v }
+  vpc_id   = aws_vpc.this.id
   tags = merge(var.tags,
     {
-      Name  = "${local.prefix}rtb/public/${local.public_subnets[keys(local.public_subnets)[0]].az}"
-      Scope = "public"
+      Name  = "${local.prefix}rtb/${each.value.scope}"
+      Scope = each.value.scope
     }
   )
 }
 
-resource "aws_route_table_association" "public_route_table" {
-  for_each       = local.public_subnets
-  subnet_id      = aws_subnet.public[each.key].id
-  route_table_id = aws_route_table.public_route_table[0].id
+resource "aws_route_table_association" "this" {
+  count          = length(local.route_table_subnet_association)
+  subnet_id      = local.route_table_subnet_association[count.index].subnet_id
+  route_table_id = local.route_table_subnet_association[count.index].route_table_id
 }
-
-# private
-
-resource "aws_route_table" "private_route_table" {
-  count  = length(local.private_subnets) > 0 ? 1 : 0
-  vpc_id = aws_vpc.this.id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}rtb/private/${local.private_subnets[keys(local.private_subnets)[0]].az}"
-      Scope = "private"
-    }
-  )
-}
-
-resource "aws_route_table_association" "private_route_table" {
-  for_each       = local.private_subnets
-  subnet_id      = aws_subnet.private[each.key].id
-  route_table_id = aws_route_table.private_route_table[0].id
-}
-
-# custom
-#--------------------------
-
-# TODO: add custom route tables per subnet if subnet config custom_rt = true
-
 
 ####################################################
 # internet gateway
@@ -374,155 +176,62 @@ resource "aws_internet_gateway" "this" {
 }
 
 # routes
-#--------------------------
 
-# ipv4
+resource "aws_route" "this" {
+  for_each = { for r in local.routes :
+    "${r.scope}-${coalesce(r.destination_cidr_block, r.destination_ipv6_cidr_block)}" => r
+  }
+  route_table_id              = each.value.route_table_id
+  destination_cidr_block      = each.value.destination_cidr_block
+  destination_ipv6_cidr_block = each.value.destination_ipv6_cidr_block
 
-resource "aws_route" "public_internet_route_a" {
-  count                  = length(local.public_subnets_a) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.public_route_table[0].id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.this.id
-}
+  gateway_id     = each.value.gateway_id
+  nat_gateway_id = each.value.nat_gateway_id
 
-resource "aws_route" "public_internet_route_b" {
-  count                  = length(local.public_subnets_b) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.public_route_table[0].id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.this.id
-}
-
-resource "aws_route" "public_internet_route_c" {
-  count                  = length(local.public_subnets_c) > 0 ? 1 : 0
-  route_table_id         = aws_route_table.public_route_table[0].id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.this.id
-}
-
-# ipv6
-
-resource "aws_route" "public_internet_route_a_ipv6" {
-  count                       = length(local.public_subnets_a) > 0 ? 1 : 0
-  route_table_id              = aws_route_table.public_route_table[0].id
-  destination_ipv6_cidr_block = "::/0"
-  gateway_id                  = aws_internet_gateway.this.id
-}
-
-resource "aws_route" "public_internet_route_b_ipv6" {
-  count                       = length(local.public_subnets_b) > 0 ? 1 : 0
-  route_table_id              = aws_route_table.public_route_table[0].id
-  destination_ipv6_cidr_block = "::/0"
-  gateway_id                  = aws_internet_gateway.this.id
-}
-
-resource "aws_route" "public_internet_route_c_ipv6" {
-  count                       = length(local.public_subnets_c) > 0 ? 1 : 0
-  route_table_id              = aws_route_table.public_route_table[0].id
-  destination_ipv6_cidr_block = "::/0"
-  gateway_id                  = aws_internet_gateway.this.id
+  destination_prefix_list_id = try(each.value.destination_prefix_list_id, null)
+  carrier_gateway_id         = try(each.value.carrier_gateway_id, null)
+  core_network_arn           = try(each.value.core_network_arn, null)
+  egress_only_gateway_id     = try(each.value.egress_only_gateway_id, null)
+  local_gateway_id           = try(each.value.local_gateway_id, null)
+  network_interface_id       = try(each.value.network_interface_id, null)
+  transit_gateway_id         = try(each.value.transit_gateway_id, null)
+  vpc_endpoint_id            = try(each.value.vpc_endpoint_id, null)
+  vpc_peering_connection_id  = try(each.value.vpc_peering_connection_id, null)
 }
 
 ####################################################
-# nat gateways
+# nat
 ####################################################
 
-# nat gateways ips
-#--------------------------
+# address
 
-resource "aws_eip" "eip_natgw_a" {
-  count  = length(local.public_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
-  domain = "vpc"
+resource "aws_eip" "natgw" {
+  for_each = { for v in var.nat_config : v.subnet => v if v.scope == "public" }
+  domain   = "vpc"
   tags = merge(var.tags,
     {
-      Name = "${local.prefix}eip-natgw-a"
-    }
-  )
-}
-
-resource "aws_eip" "eip_natgw_b" {
-  count  = length(local.public_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
-  domain = "vpc"
-  tags = merge(var.tags,
-    {
-      Name = "${local.prefix}eip-natgw-b"
-    }
-  )
-}
-
-resource "aws_eip" "eip_natgw_c" {
-  count  = length(local.public_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
-  domain = "vpc"
-  tags = merge(var.tags,
-    {
-      Name = "${local.prefix}eip-natgw-c"
-    }
-  )
-}
-
-# nat gateways
-#--------------------------
-
-resource "aws_nat_gateway" "natgw_a" {
-  count         = length(local.public_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
-  allocation_id = aws_eip.eip_natgw_a[0].id
-  subnet_id     = aws_subnet.public[keys(local.public_subnets_a)[0]].id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}natgw-a"
+      Name  = "${local.prefix}eip-natgw-${var.subnets[each.key].az}"
       Scope = "public"
     }
   )
-  depends_on = [aws_internet_gateway.this, ]
 }
 
-resource "aws_nat_gateway" "natgw_b" {
-  count         = length(local.public_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
-  allocation_id = aws_eip.eip_natgw_b[0].id
-  subnet_id     = aws_subnet.public[keys(local.public_subnets_b)[0]].id
+# gateway
+
+resource "aws_nat_gateway" "natgw" {
+  for_each          = { for v in var.nat_config : v.subnet => v }
+  connectivity_type = each.value.scope
+  allocation_id     = each.value.scope == "public" ? aws_eip.natgw[each.key].id : null
+  private_ip        = each.value.scope == "private" ? each.value.private_ip : null
+  subnet_id         = aws_subnet.this[each.key].id
   tags = merge(var.tags,
     {
-      Name  = "${local.prefix}natgw-b"
+      Name  = "${local.prefix}natgw-${each.key}-${var.subnets[each.key].az}"
       Scope = "public"
+      Az    = var.subnets[each.key].az
     }
   )
   depends_on = [aws_internet_gateway.this, ]
-}
-
-resource "aws_nat_gateway" "natgw_c" {
-  count         = length(local.public_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
-  allocation_id = aws_eip.eip_natgw_c[0].id
-  subnet_id     = aws_subnet.public[keys(local.public_subnets_c)[0]].id
-  tags = merge(var.tags,
-    {
-      Name  = "${local.prefix}natgw-c"
-      Scope = "public"
-    }
-  )
-  depends_on = [aws_internet_gateway.this, ]
-}
-
-# routes
-#--------------------------
-
-resource "aws_route" "private_internet_route_a" {
-  count                  = length(local.private_subnets_a) > 0 && var.create_nat_gateway ? 1 : 0
-  route_table_id         = aws_route_table.private_route_table[0].id
-  nat_gateway_id         = aws_nat_gateway.natgw_a[0].id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
-resource "aws_route" "private_internet_route_b" {
-  count                  = length(local.private_subnets_b) > 0 && var.create_nat_gateway ? 1 : 0
-  route_table_id         = aws_route_table.private_route_table[0].id
-  nat_gateway_id         = aws_nat_gateway.natgw_b[0].id
-  destination_cidr_block = "0.0.0.0/0"
-}
-
-resource "aws_route" "private_internet_route_c" {
-  count                  = length(local.private_subnets_c) > 0 && var.create_nat_gateway ? 1 : 0
-  route_table_id         = aws_route_table.private_route_table[0].id
-  nat_gateway_id         = aws_nat_gateway.natgw_c[0].id
-  destination_cidr_block = "0.0.0.0/0"
 }
 
 ####################################################
@@ -606,7 +315,7 @@ module "bastion" {
   interfaces = [
     {
       name               = "${local.prefix}bastion-untrust"
-      subnet_id          = aws_subnet.public["UntrustSubnet"].id
+      subnet_id          = aws_subnet.this["UntrustSubnet"].id
       private_ips        = var.bastion_config.private_ips
       security_group_ids = [aws_security_group.bastion_sg.id, ]
       create_eip         = true

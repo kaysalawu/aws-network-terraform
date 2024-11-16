@@ -20,8 +20,6 @@ module "hub1" {
 
   subnets = local.hub1_subnets
 
-  create_nat_gateway = true
-
   private_dns_config = {
     create_zone = true
     zone_name   = local.cloud_dns_zone
@@ -32,10 +30,32 @@ module "hub1" {
     ]
   }
 
+  nat_config = [
+    { scope = "public", subnet = "UntrustSubnet", },
+  ]
+
+  route_table_config = [
+    {
+      scope   = "private"
+      subnets = [for k, v in local.hub1_subnets : k if v.scope == "private"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+      ]
+    },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.hub1_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
+  ]
+
   bastion_config = {
     enable               = true
     key_name             = module.common.key_pair_name[local.region1]
-    private_ips          = [local.hub1_bastion_addr]
+    private_ips          = [local.hub1_bastion_addr, ]
     iam_instance_profile = module.common.iam_instance_profile.name
     public_dns_zone_name = local.domain_name
     dns_prefix           = "bastion.hub1.eu"
@@ -74,7 +94,7 @@ module "hub1_vm" {
   interfaces = [
     {
       name               = "${local.hub1_prefix}vm-main"
-      subnet_id          = module.hub1.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.hub1.subnet_ids["MainSubnet"]
       private_ips        = [local.hub1_vm_addr, ]
       security_group_ids = [module.hub1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.hub1_vm_hostname}.${local.region1_code}" }

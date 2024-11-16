@@ -19,12 +19,8 @@ output "vpc_ipv6_cidr_block" {
   value = aws_vpc.this.ipv6_cidr_block
 }
 
-output "public_subnet_ids" {
-  value = { for k, v in aws_subnet.public : k => v.id }
-}
-
-output "private_subnet_ids" {
-  value = { for k, v in aws_subnet.private : k => v.id }
+output "subnet_ids" {
+  value = try({ for k, v in aws_subnet.this : k => v.id }, {})
 }
 
 ####################################################
@@ -51,26 +47,30 @@ output "bastion_id" {
   value = try(module.bastion[0].instance_id, "")
 }
 
-output "public_route_table_id" {
-  value = aws_route_table.public_route_table[0].id
+output "route_tables" {
+  value = try(aws_route_table.this, {})
 }
 
-output "private_route_table_id" {
-  value = aws_route_table.private_route_table[0].id
+output "route_table_ids" {
+  value = try({ for k, v in aws_route_table.this : k => v.id }, {})
 }
 
 ####################################################
 # gateways
 ####################################################
 
+output "internet_gateway" {
+  value = aws_internet_gateway.this
+}
+
 output "internet_gateway_id" {
   value = aws_internet_gateway.this.id
 }
 
 output "nat_gateways" {
-  value = merge(
-    { for index, gateway in aws_nat_gateway.natgw_a : gateway.id => gateway.id },
-    { for index, gateway in aws_nat_gateway.natgw_b : gateway.id => gateway.id },
-    { for index, gateway in aws_nat_gateway.natgw_c : gateway.id => gateway.id },
-  )
+  value = try(aws_nat_gateway.natgw, {})
+}
+
+output "nat_gateway_ids" {
+  value = try({ for k, v in aws_nat_gateway.natgw : k => v.id }, {})
 }

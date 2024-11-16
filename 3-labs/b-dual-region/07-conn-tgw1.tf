@@ -18,7 +18,7 @@ locals {
 
 resource "aws_customer_gateway" "branch1_cgw" {
   bgp_asn    = local.branch1_nva_asn
-  ip_address = aws_eip.branch1_nva.public_ip
+  ip_address = aws_eip.branch1_nva_untrust.public_ip
   type       = "ipsec.1"
   tags = {
     Name = "${local.branch1_prefix}cgw"
@@ -57,7 +57,7 @@ locals {
         vti_local_addr  = local.tgw1_branch1_vpn_tun1_inside_addr
         vti_remote_addr = local.tgw1_vpn_tun1_inside_addr
         local_ip        = local.branch1_nva_untrust_addr
-        local_id        = aws_eip.branch1_nva.public_ip
+        local_id        = aws_eip.branch1_nva_untrust.public_ip
         remote_ip       = local.tgw1_branch1_vpn_tun1_addr
         remote_id       = local.tgw1_branch1_vpn_tun1_addr
         psk             = local.psk
@@ -67,7 +67,7 @@ locals {
         vti_local_addr  = local.tgw1_branch1_vpn_tun2_inside_addr
         vti_remote_addr = local.tgw1_vpn_tun2_inside_addr
         local_ip        = local.branch1_nva_untrust_addr
-        local_id        = aws_eip.branch1_nva.public_ip
+        local_id        = aws_eip.branch1_nva_untrust.public_ip
         remote_ip       = local.tgw1_branch1_vpn_tun2_addr
         remote_id       = local.tgw1_branch1_vpn_tun2_addr
         psk             = local.psk
@@ -124,21 +124,48 @@ module "branch1_nva" {
   interfaces = [
     {
       name               = "${local.branch1_prefix}nva-untrust"
-      subnet_id          = module.branch1.public_subnet_ids["UntrustSubnet"]
+      subnet_id          = module.branch1.subnet_ids["UntrustSubnet"]
       private_ips        = [local.branch1_nva_untrust_addr, ]
       security_group_ids = [module.branch1.nva_security_group_id, ]
-      eip_tag_name       = "${local.branch1_prefix}nva"
+      eip_tag_name       = "${local.branch1_prefix}nva-untrust"
       source_dest_check  = false
-      dns_config         = { public = true, zone_name = local.domain_name, name = "branch1-nva.${local.region1_code}" }
     },
     {
       name               = "${local.branch1_prefix}nva-trust"
-      subnet_id          = module.branch1.private_subnet_ids["TrustSubnet"]
+      subnet_id          = module.branch1.subnet_ids["TrustSubnet"]
       private_ips        = [local.branch1_nva_trust_addr, ]
       security_group_ids = [module.branch1.ec2_security_group_id, ]
       source_dest_check  = false
     }
   ]
+}
+
+# dns
+
+resource "aws_route53_record" "branch1_nva" {
+  zone_id = data.aws_route53_zone.public.zone_id
+  name    = "branch1-nva.${local.region1_code}"
+  type    = "A"
+  ttl     = 300
+  records = [
+    aws_eip.branch1_nva_untrust.public_ip,
+  ]
+  lifecycle {
+    ignore_changes = [
+      zone_id,
+    ]
+  }
+}
+
+####################################################
+# static routes
+####################################################
+
+resource "aws_route" "branch1_routes" {
+  for_each               = toset(local.private_prefixes_ipv4)
+  route_table_id         = module.branch1.route_table_ids["private"]
+  destination_cidr_block = each.value
+  network_interface_id   = module.branch1_nva.interface_ids["${local.branch1_prefix}nva-untrust"]
 }
 
 ####################################################
@@ -148,7 +175,7 @@ module "branch1_nva" {
 # connection
 
 resource "aws_vpn_connection" "branch1_vpn_conn" {
-  transit_gateway_id    = module.tgw1.ec2_transit_gateway_id
+  transit_gateway_id    = module.tgw1.id
   customer_gateway_id   = aws_customer_gateway.branch1_cgw.id
   type                  = aws_customer_gateway.branch1_cgw.type
   tunnel1_preshared_key = local.psk
@@ -162,14 +189,14 @@ resource "aws_vpn_connection" "branch1_vpn_conn" {
 
 resource "aws_ec2_transit_gateway_route_table_association" "branch1_vpn_conn" {
   transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
-  transit_gateway_route_table_id = module.tgw1.ec2_transit_gateway_route_table_ids["hub"]
+  transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
 }
 
 # propagation
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "branch1_vpn_conn" {
   transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
-  transit_gateway_route_table_id = module.tgw1.ec2_transit_gateway_route_table_ids["hub"]
+  transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
 }
 
 ####################################################

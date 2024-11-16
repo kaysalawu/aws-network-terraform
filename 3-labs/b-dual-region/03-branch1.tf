@@ -20,6 +20,28 @@ module "branch1" {
 
   subnets = local.branch1_subnets
 
+  nat_config = [
+    { scope = "public", subnet = "UntrustSubnet", },
+  ]
+
+  route_table_config = [
+    {
+      scope   = "private"
+      subnets = [for k, v in local.branch1_subnets : k if v.scope == "private"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+      ]
+    },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.branch1_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
+  ]
+
   dhcp_options = {
     enable              = true
     domain_name         = local.domain_name
@@ -54,6 +76,8 @@ locals {
       local.private_prefixes_ipv4,
       ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
     )
+    USERNAME = local.username
+    PASSWORD = local.password
   }
   branch1_forward_zones = [
     { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr, ] },
@@ -75,7 +99,7 @@ module "branch1_dns" {
   interfaces = [
     {
       name               = "${local.branch1_prefix}dns-main"
-      subnet_id          = module.branch1.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.branch1.subnet_ids["MainSubnet"]
       private_ips        = [local.branch1_dns_addr, ]
       security_group_ids = [module.branch1.ec2_security_group_id, ]
     }
@@ -109,7 +133,7 @@ module "branch1_vm" {
   interfaces = [
     {
       name               = "${local.branch1_prefix}vm-main"
-      subnet_id          = module.branch1.private_subnet_ids["MainSubnet"]
+      subnet_id          = module.branch1.subnet_ids["MainSubnet"]
       private_ips        = [local.branch1_vm_addr, ]
       security_group_ids = [module.branch1.ec2_security_group_id, ]
     }
@@ -121,7 +145,7 @@ module "branch1_vm" {
 
 ####################################################
 # output files
-####################################################
+####################################################,
 
 locals {
   branch1_files = {
