@@ -4,25 +4,28 @@
 ####################################################
 
 module "hub1" {
-  source = "../../modules/base"
-  prefix = trimsuffix(local.hub1_prefix, "-")
-  region = local.hub1_region
-  tags   = local.hub1_tags
+  source    = "../../modules/base"
+  providers = { aws = aws.region1 }
+  prefix    = trimsuffix(local.hub1_prefix, "-")
+  region    = local.hub1_region
+  tags      = local.hub1_tags
 
   cidr               = local.hub1_cidr
   use_ipv4_ipam_pool = false
-  ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.hub1_region]
+  ipv4_ipam_pool_id  = module.common_region1.ipv4_ipam_pool_id
 
   # enable_ipv6        = local.enable_ipv6
   # ipv6_cidr          = local.hub1_ipv6_cidr
   # use_ipv6_ipam_pool = false
-  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.hub1_region]
+  # ipv6_ipam_pool_id  = module.common_region1.ipv6_ipam_pool_id
 
   subnets = local.hub1_subnets
 
+  create_internet_gateway = true
+
   private_dns_config = {
     create_zone = true
-    zone_name   = local.cloud_dns_zone
+    zone_name   = local.region1_dns_zone
     vpc_associations = [
       module.spoke1.vpc_id,
       module.spoke2.vpc_id,
@@ -54,26 +57,22 @@ module "hub1" {
 
   bastion_config = {
     enable               = true
-    key_name             = module.common.key_pair_name[local.region1]
+    key_name             = module.common_region1.key_pair_name
     private_ips          = [local.hub1_bastion_addr, ]
-    iam_instance_profile = module.common.iam_instance_profile.name
+    iam_instance_profile = module.common_region1.iam_instance_profile.name
     public_dns_zone_name = local.domain_name
-    dns_prefix           = "bastion.hub1.eu"
+    dns_prefix           = "bastion.hub1.${local.region1_code}"
   }
 
   depends_on = [
-    module.common,
+    module.common_region1,
   ]
 }
 
 resource "time_sleep" "hub1" {
-  triggers = {
-    nat_gateways        = jsonencode(module.hub1.nat_gateways)
-    internet_gateway_id = module.hub1.internet_gateway_id
-  }
   create_duration = "90s"
   depends_on = [
-    module.hub1
+    module.hub1,
   ]
 }
 
@@ -83,11 +82,12 @@ resource "time_sleep" "hub1" {
 
 module "hub1_vm" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region1 }
   name                 = "${local.hub1_prefix}vm"
   availability_zone    = "${local.hub1_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.region1]
+  iam_instance_profile = module.common_region1.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region1.id
+  key_name             = module.common_region1.key_pair_name
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.hub1_tags
 
@@ -97,7 +97,7 @@ module "hub1_vm" {
       subnet_id          = module.hub1.subnet_ids["MainSubnet"]
       private_ips        = [local.hub1_vm_addr, ]
       security_group_ids = [module.hub1.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.hub1_vm_hostname}.${local.region1_code}" }
+      dns_config         = { zone_name = local.region1_dns_zone, name = local.hub1_vm_hostname }
     }
   ]
   depends_on = [

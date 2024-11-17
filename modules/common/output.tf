@@ -12,14 +12,14 @@ output "ipam_id" {
 }
 
 output "ipv4_ipam_pool_id" {
-  value = { for k, v in aws_vpc_ipam_pool.ipam_scope_id_ipv4 : k => v.id }
+  value = aws_vpc_ipam_pool.ipam_scope_id_ipv4.id
 }
 
 output "ipv6_ipam_pool_id" {
-  value = { for k, v in aws_vpc_ipam_pool.ipam_scope_id_ipv6 : k => v.id }
+  value = aws_vpc_ipam_pool.ipam_scope_id_ipv6.id
 }
 
 output "key_pair_name" {
-  value = { for k, v in aws_key_pair.this : k => v.key_name }
+  value = aws_key_pair.this.key_name
 }
 

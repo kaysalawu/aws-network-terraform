@@ -16,12 +16,9 @@ variable "tags" {
   default     = {}
 }
 
-variable "regions" {
-  description = "A map of regions to deploy resources to"
-  type = map(object({
-    name     = string
-    dns_zone = string
-  }))
+variable "region" {
+  description = "The region to deploy resources"
+  type        = string
 }
 
 variable "firewall_sku" {

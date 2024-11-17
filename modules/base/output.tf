@@ -60,11 +60,11 @@ output "route_table_ids" {
 ####################################################
 
 output "internet_gateway" {
-  value = aws_internet_gateway.this
+  value = try(aws_internet_gateway.this[0], {})
 }
 
 output "internet_gateway_id" {
-  value = aws_internet_gateway.this.id
+  value = try(aws_internet_gateway.this[0].id, "")
 }
 
 output "nat_gateways" {

@@ -20,7 +20,7 @@ locals {
         destination_cidr_block      = try(route.ipv4_cidr, null)
         destination_ipv6_cidr_block = try(route.ipv6_cidr, null)
 
-        gateway_id     = route.internet_gateway ? aws_internet_gateway.this.id : null
+        gateway_id     = var.create_internet_gateway && route.internet_gateway ? aws_internet_gateway.this.0.id : null
         nat_gateway_id = route.nat_gateway ? aws_nat_gateway.natgw[route.nat_gateway_subnet].id : null
 
         route_table_id             = try(aws_route_table.this[rt.scope].id, null)
@@ -167,6 +167,7 @@ resource "aws_route_table_association" "this" {
 # gateway
 
 resource "aws_internet_gateway" "this" {
+  count  = var.create_internet_gateway ? 1 : 0
   vpc_id = aws_vpc.this.id
   tags = merge(var.tags,
     {

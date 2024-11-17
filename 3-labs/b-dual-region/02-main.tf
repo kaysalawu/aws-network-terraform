@@ -34,7 +34,22 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  region     = local.default_region
+  alias      = "default"
+  region     = local.region1
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_access_key
+}
+
+provider "aws" {
+  alias      = "region1"
+  region     = local.region1
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_access_key
+}
+
+provider "aws" {
+  alias      = "region2"
+  region     = local.region2
   access_key = var.aws_access_key
   secret_key = var.aws_secret_access_key
 }
@@ -43,9 +58,10 @@ provider "aws" {
 # data
 ####################################################
 
-data "aws_ami" "ubuntu" {
+data "aws_ami" "ubuntu_region1" {
+  provider    = aws.region1
   most_recent = true
-
+  owners      = ["099720109477"]
   filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
@@ -54,13 +70,30 @@ data "aws_ami" "ubuntu" {
     name   = "virtualization-type"
     values = ["hvm"]
   }
+}
 
-  owners = ["099720109477"]
+data "aws_ami" "ubuntu_region2" {
+  provider    = aws.region2
+  most_recent = true
+  owners      = ["099720109477"]
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 }
 
 data "aws_route53_zone" "public" {
+  provider     = aws.default
   name         = "cloudtuple.org."
   private_zone = false
+}
+
+data "aws_caller_identity" "current" {
+  provider = aws.default
 }
 
 ####################################################
@@ -114,11 +147,25 @@ locals {
 # common resources
 ####################################################
 
-module "common" {
+module "common_region1" {
   source                = "../../modules/common"
+  providers             = { aws = aws.region1 }
   env                   = "common"
   prefix                = local.prefix
-  regions               = local.regions
+  region                = local.region1
+  private_prefixes_ipv4 = local.private_prefixes_ipv4
+  private_prefixes_ipv6 = local.private_prefixes_ipv6
+  public_key_path       = var.public_key_path
+  private_key_path      = var.private_key_path
+  tags                  = {}
+}
+
+module "common_region2" {
+  source                = "../../modules/common"
+  providers             = { aws = aws.region2 }
+  env                   = "common"
+  prefix                = local.prefix
+  region                = local.region2
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
   public_key_path       = var.public_key_path
@@ -254,9 +301,20 @@ module "probe_vm_cloud_init" {
 # branch1
 
 resource "aws_eip" "branch1_nva_untrust" {
-  domain = "vpc"
+  provider = aws.region1
+  domain   = "vpc"
   tags = {
     Name = "${local.branch1_prefix}nva-untrust"
+  }
+}
+
+# branch3
+
+resource "aws_eip" "branch3_nva_untrust" {
+  provider = aws.region2
+  domain   = "vpc"
+  tags = {
+    Name = "${local.branch3_prefix}nva-untrust"
   }
 }
 

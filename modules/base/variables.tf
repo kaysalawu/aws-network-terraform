@@ -159,7 +159,7 @@ variable "subnets" {
     public_natgw  = optional(bool, false)
     private_natgw = optional(bool, false)
 
-    map_public_ip_on_launch = optional(bool, true)
+    map_public_ip_on_launch = optional(bool, false)
   }))
   default = {}
 }
@@ -256,3 +256,8 @@ variable "route_table_config" {
   }
 }
 
+variable "create_internet_gateway" {
+  description = "Should be true to create an internet gateway"
+  type        = bool
+  default     = false
+}

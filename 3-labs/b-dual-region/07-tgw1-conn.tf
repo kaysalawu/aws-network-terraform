@@ -17,6 +17,7 @@ locals {
 # customer gateway
 
 resource "aws_customer_gateway" "branch1_cgw" {
+  provider   = aws.region1
   bgp_asn    = local.branch1_nva_asn
   ip_address = aws_eip.branch1_nva_untrust.public_ip
   type       = "ipsec.1"
@@ -113,11 +114,12 @@ locals {
 
 module "branch1_nva" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region1 }
   name                 = "${local.branch1_prefix}nva"
   availability_zone    = "${local.branch1_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.region1]
+  iam_instance_profile = module.common_region1.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region1.id
+  key_name             = module.common_region1.key_pair_name
   user_data            = base64encode(local.branch1_nva_init)
   tags                 = local.branch1_tags
 
@@ -143,10 +145,11 @@ module "branch1_nva" {
 # dns
 
 resource "aws_route53_record" "branch1_nva" {
-  zone_id = data.aws_route53_zone.public.zone_id
-  name    = "branch1-nva.${local.region1_code}"
-  type    = "A"
-  ttl     = 300
+  provider = aws.region1
+  zone_id  = data.aws_route53_zone.public.zone_id
+  name     = "branch1-nva.${local.region1_code}"
+  type     = "A"
+  ttl      = 300
   records = [
     aws_eip.branch1_nva_untrust.public_ip,
   ]
@@ -163,6 +166,7 @@ resource "aws_route53_record" "branch1_nva" {
 
 resource "aws_route" "branch1_routes" {
   for_each               = toset(local.private_prefixes_ipv4)
+  provider               = aws.region1
   route_table_id         = module.branch1.route_table_ids["private"]
   destination_cidr_block = each.value
   network_interface_id   = module.branch1_nva.interface_ids["${local.branch1_prefix}nva-untrust"]
@@ -175,6 +179,7 @@ resource "aws_route" "branch1_routes" {
 # connection
 
 resource "aws_vpn_connection" "branch1_vpn_conn" {
+  provider              = aws.region1
   transit_gateway_id    = module.tgw1.id
   customer_gateway_id   = aws_customer_gateway.branch1_cgw.id
   type                  = aws_customer_gateway.branch1_cgw.type
@@ -188,6 +193,7 @@ resource "aws_vpn_connection" "branch1_vpn_conn" {
 # association
 
 resource "aws_ec2_transit_gateway_route_table_association" "branch1_vpn_conn" {
+  provider                       = aws.region1
   transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
   transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
 }
@@ -195,6 +201,7 @@ resource "aws_ec2_transit_gateway_route_table_association" "branch1_vpn_conn" {
 # propagation
 
 resource "aws_ec2_transit_gateway_route_table_propagation" "branch1_vpn_conn" {
+  provider                       = aws.region1
   transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
   transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
 }

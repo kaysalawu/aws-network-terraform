@@ -6,29 +6,37 @@
 # base
 
 module "spoke1" {
-  source = "../../modules/base"
-  prefix = trimsuffix(local.spoke1_prefix, "-")
-  region = local.spoke1_region
-  tags   = local.spoke1_tags
+  source    = "../../modules/base"
+  providers = { aws = aws.region1 }
+  prefix    = trimsuffix(local.spoke1_prefix, "-")
+  region    = local.spoke1_region
+  tags      = local.spoke1_tags
 
   cidr               = local.spoke1_cidr
   use_ipv4_ipam_pool = false
-  ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke1_region]
+  ipv4_ipam_pool_id  = module.common_region1.ipv4_ipam_pool_id
 
   # enable_ipv6        = local.enable_ipv6
   # ipv6_cidr          = local.spoke1_ipv6_cidr
   # use_ipv6_ipam_pool = false
-  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke1_region]
+  # ipv6_ipam_pool_id  = module.common_region1.ipv6_ipam_pool_id
 
   subnets = local.spoke1_subnets
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "private"] },
-    { scope = "public", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "public"] },
   ]
 
   depends_on = [
-    module.common,
+    module.common_region1,
+  ]
+}
+
+resource "time_sleep" "spoke1" {
+  create_duration = "60s"
+  depends_on = [
+    module.spoke1,
+    module.tgw1,
   ]
 }
 
@@ -36,11 +44,12 @@ module "spoke1" {
 
 module "spoke1_vm" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region1 }
   name                 = "${local.spoke1_prefix}vm"
   availability_zone    = "${local.spoke1_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.region1]
+  iam_instance_profile = module.common_region1.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region1.id
+  key_name             = module.common_region1.key_pair_name
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke1_tags
 
@@ -50,11 +59,11 @@ module "spoke1_vm" {
       subnet_id          = module.spoke1.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke1_vm_addr, ]
       security_group_ids = [module.spoke1.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke1_vm_hostname}.${local.region1_code}" }
+      dns_config         = { zone_name = local.region1_dns_zone, name = local.spoke1_vm_hostname }
     }
   ]
   depends_on = [
-    module.tgw1,
+    time_sleep.spoke1,
   ]
 }
 
@@ -65,29 +74,37 @@ module "spoke1_vm" {
 # base
 
 module "spoke2" {
-  source = "../../modules/base"
-  prefix = trimsuffix(local.spoke2_prefix, "-")
-  region = local.spoke2_region
-  tags   = local.spoke2_tags
+  source    = "../../modules/base"
+  providers = { aws = aws.region1 }
+  prefix    = trimsuffix(local.spoke2_prefix, "-")
+  region    = local.spoke2_region
+  tags      = local.spoke2_tags
 
   cidr               = local.spoke2_cidr
   use_ipv4_ipam_pool = false
-  ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke2_region]
+  ipv4_ipam_pool_id  = module.common_region1.ipv4_ipam_pool_id
 
   # enable_ipv6        = local.enable_ipv6
   # ipv6_cidr          = local.spoke2_ipv6_cidr
   # use_ipv6_ipam_pool = false
-  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke2_region]
+  # ipv6_ipam_pool_id  = module.common_region1.ipv6_ipam_pool_id
 
   subnets = local.spoke2_subnets
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "private"] },
-    { scope = "public", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "public"] },
   ]
 
   depends_on = [
-    module.common,
+    module.common_region1,
+  ]
+}
+
+resource "time_sleep" "spoke2" {
+  create_duration = "60s"
+  depends_on = [
+    module.spoke2,
+    module.tgw1,
   ]
 }
 
@@ -95,11 +112,12 @@ module "spoke2" {
 
 module "spoke2_vm" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region1 }
   name                 = "${local.spoke2_prefix}vm"
   availability_zone    = "${local.spoke2_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.region1]
+  iam_instance_profile = module.common_region1.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region1.id
+  key_name             = module.common_region1.key_pair_name
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke2_tags
 
@@ -109,11 +127,11 @@ module "spoke2_vm" {
       subnet_id          = module.spoke2.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke2_vm_addr, ]
       security_group_ids = [module.spoke2.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke2_vm_hostname}.${local.region1_code}" }
+      dns_config         = { zone_name = local.region1_dns_zone, name = local.spoke2_vm_hostname }
     }
   ]
   depends_on = [
-    module.tgw1,
+    time_sleep.spoke2,
   ]
 }
 
@@ -124,21 +142,24 @@ module "spoke2_vm" {
 # base
 
 module "spoke3" {
-  source = "../../modules/base"
-  prefix = trimsuffix(local.spoke3_prefix, "-")
-  region = local.spoke3_region
-  tags   = local.spoke3_tags
+  source    = "../../modules/base"
+  providers = { aws = aws.region1 }
+  prefix    = trimsuffix(local.spoke3_prefix, "-")
+  region    = local.spoke3_region
+  tags      = local.spoke3_tags
 
   cidr               = local.spoke3_cidr
   use_ipv4_ipam_pool = false
-  ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.spoke3_region]
+  ipv4_ipam_pool_id  = module.common_region1.ipv4_ipam_pool_id
 
   # enable_ipv6        = local.enable_ipv6
   # ipv6_cidr          = local.spoke3_ipv6_cidr
   # use_ipv6_ipam_pool = false
-  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.spoke3_region]
+  # ipv6_ipam_pool_id  = module.common_region1.ipv6_ipam_pool_id[local.spoke3_region]
 
   subnets = local.spoke3_subnets
+
+  create_internet_gateway = true
 
   nat_config = [
     { scope = "public", subnet = "UntrustSubnet", },
@@ -163,7 +184,15 @@ module "spoke3" {
   ]
 
   depends_on = [
-    module.common,
+    module.common_region1,
+  ]
+}
+
+resource "time_sleep" "spoke3" {
+  create_duration = "60s"
+  depends_on = [
+    module.spoke3,
+    module.tgw1,
   ]
 }
 
@@ -171,11 +200,12 @@ module "spoke3" {
 
 module "spoke3_vm" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region1 }
   name                 = "${local.spoke3_prefix}vm"
   availability_zone    = "${local.spoke3_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.region1]
+  iam_instance_profile = module.common_region1.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region1.id
+  key_name             = module.common_region1.key_pair_name
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.spoke3_tags
 
@@ -185,11 +215,11 @@ module "spoke3_vm" {
       subnet_id          = module.spoke3.subnet_ids["MainSubnet"]
       private_ips        = [local.spoke3_vm_addr, ]
       security_group_ids = [module.spoke3.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.spoke3_vm_hostname}.${local.region1_code}" }
+      dns_config         = { zone_name = local.region1_dns_zone, name = local.spoke3_vm_hostname }
     }
   ]
   depends_on = [
-    module.tgw1,
+    time_sleep.spoke3,
   ]
 }
 

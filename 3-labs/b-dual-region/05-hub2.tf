@@ -4,27 +4,28 @@
 ####################################################
 
 module "hub2" {
-  source = "../../modules/base"
-  prefix = trimsuffix(local.hub2_prefix, "-")
-  region = local.hub2_region
-  tags   = local.hub2_tags
+  source    = "../../modules/base"
+  providers = { aws = aws.region2 }
+  prefix    = trimsuffix(local.hub2_prefix, "-")
+  region    = local.hub2_region
+  tags      = local.hub2_tags
 
   cidr               = local.hub2_cidr
   use_ipv4_ipam_pool = false
-  ipv4_ipam_pool_id  = module.common.ipv4_ipam_pool_id[local.hub2_region]
+  ipv4_ipam_pool_id  = module.common_region2.ipv4_ipam_pool_id
 
   # enable_ipv6        = local.enable_ipv6
   # ipv6_cidr          = local.hub2_ipv6_cidr
   # use_ipv6_ipam_pool = false
-  # ipv6_ipam_pool_id  = module.common.ipv6_ipam_pool_id[local.hub2_region]
+  # ipv6_ipam_pool_id  = module.common_region2.ipv6_ipam_pool_id
 
   subnets = local.hub2_subnets
 
-  create_nat_gateway = true
+  create_internet_gateway = true
 
   private_dns_config = {
     create_zone = true
-    zone_name   = local.cloud_dns_zone
+    zone_name   = local.region2_dns_zone
     vpc_associations = [
       module.spoke4.vpc_id,
       module.spoke5.vpc_id,
@@ -32,25 +33,43 @@ module "hub2" {
     ]
   }
 
+  nat_config = [
+    { scope = "public", subnet = "UntrustSubnet", },
+  ]
+
+  route_table_config = [
+    {
+      scope   = "private"
+      subnets = [for k, v in local.hub2_subnets : k if v.scope == "private"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+      ]
+    },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.hub2_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
+  ]
+
   bastion_config = {
     enable               = true
-    key_name             = module.common.key_pair_name[local.hub2_region]
+    key_name             = module.common_region2.key_pair_name
     private_ips          = [local.hub2_bastion_addr]
-    iam_instance_profile = module.common.iam_instance_profile.name
+    iam_instance_profile = module.common_region2.iam_instance_profile.name
     public_dns_zone_name = local.domain_name
-    dns_prefix           = "bastion.hub2.eu"
+    dns_prefix           = "bastion.hub2.${local.region2_code}"
   }
 
   depends_on = [
-    module.common,
+    module.common_region2,
   ]
 }
 
 resource "time_sleep" "hub2" {
-  triggers = {
-    nat_gateways        = jsonencode(module.hub2.nat_gateways)
-    internet_gateway_id = module.hub2.internet_gateway_id
-  }
   create_duration = "90s"
   depends_on = [
     module.hub2
@@ -63,11 +82,12 @@ resource "time_sleep" "hub2" {
 
 module "hub2_vm" {
   source               = "../../modules/ec2"
+  providers            = { aws = aws.region2 }
   name                 = "${local.hub2_prefix}vm"
   availability_zone    = "${local.hub2_region}a"
-  iam_instance_profile = module.common.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu.id
-  key_name             = module.common.key_pair_name[local.hub2_region]
+  iam_instance_profile = module.common_region2.iam_instance_profile.name
+  ami                  = data.aws_ami.ubuntu_region2.id
+  key_name             = module.common_region2.key_pair_name
   user_data            = base64encode(module.vm_cloud_init.cloud_config)
   tags                 = local.hub2_tags
 
@@ -77,7 +97,7 @@ module "hub2_vm" {
       subnet_id          = module.hub2.subnet_ids["MainSubnet"]
       private_ips        = [local.hub2_vm_addr, ]
       security_group_ids = [module.hub2.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.cloud_dns_zone, name = "${local.hub2_vm_hostname}.${local.region2_code}" }
+      dns_config         = { zone_name = local.region2_dns_zone, name = local.hub2_vm_hostname }
     }
   ]
   depends_on = [

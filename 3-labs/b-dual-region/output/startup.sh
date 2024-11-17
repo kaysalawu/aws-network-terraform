@@ -6,7 +6,7 @@ export CLOUD_ENV=aws
 exec > /var/log/$CLOUD_ENV-startup.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
-echo "${USERNAME}:${PASSWORD}" | chpasswd
+echo "ubuntu:Password123" | chpasswd
 sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 systemctl restart sshd
 
@@ -58,7 +58,7 @@ cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   ipv4=$(echo $target | jq -r '.ipv4 // ""')
   curl=$(echo $target | jq -r '.curl // true')
   if [[ "$curl" == "true" && -n "$ipv4" ]]; then
-    result=$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null $ipv4)
+    result=$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%{http_code} (%{time_total}s) - %{remote_ip}" -s -o /dev/null $ipv4)
     echo "$result - $name [$ipv4]"
   fi
 done
@@ -72,7 +72,7 @@ cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   host=$(echo $target | jq -r '.host')
   curl=$(echo $target | jq -r '.curl // true')
   if [[ "$curl" == "true" ]]; then
-    result=$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null $host)
+    result=$(timeout 3 curl -4 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%{http_code} (%{time_total}s) - %{remote_ip}" -s -o /dev/null $host)
     echo "$result - $host"
   fi
 done
@@ -97,15 +97,6 @@ chmod a+x /usr/local/bin/trace-ipv4
 # ptr-ipv4
 cat <<'EOF' >/usr/local/bin/ptr-ipv4
 echo -e "\n PTR ipv4 ...\n"
-%{ for target in TARGETS ~}
-%{~ if try(target.ptr, false) ~}
-%{~ if try(target.ipv4, "") != "" ~}
-arpa_zone=$(dig -x ${target.ipv4} | grep "QUESTION SECTION" -A 1 | tail -n 1 | awk '{print $1}')
-ptr_record=$(timeout 3 dig -x ${target.ipv4} +short)
-echo "${target.name} - ${target.ipv4} --> $ptr_record [$arpa_zone]"
-%{ endif ~}
-%{ endif ~}
-%{ endfor ~}
 EOF
 chmod a+x /usr/local/bin/ptr-ipv4
 
@@ -131,7 +122,7 @@ cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   host=$(echo $target | jq -r '.host')
   curl=$(echo $target | jq -r '.curl // true')
   if [[ "$curl" == "true" ]]; then
-    result=$(timeout 3 curl -6 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%%{http_code} (%%{time_total}s) - %%{remote_ip}" -s -o /dev/null $host)
+    result=$(timeout 3 curl -6 -kL --max-time 3.0 -H 'Cache-Control: no-cache' -w "%{http_code} (%{time_total}s) - %{remote_ip}" -s -o /dev/null $host)
     echo "$result - $host"
   fi
 done
@@ -239,15 +230,6 @@ systemctl restart flaskapp.service
 # crontabs
 
 cat <<'EOF' >/etc/cron.d/traffic-gen
-%{ if TARGETS_LIGHT_TRAFFIC_GEN != [] ~}
-*/1 * * * * /usr/local/bin/light-traffic 2>&1 > /dev/null
-%{ endif ~}
-%{ if TARGETS_HEAVY_TRAFFIC_GEN != [] ~}
-*/1 * * * * /usr/local/bin/heavy-traffic 15 1 2>&1 > /dev/null
-*/2 * * * * /usr/local/bin/heavy-traffic 3 1 2>&1 > /dev/null
-*/3 * * * * /usr/local/bin/heavy-traffic 8 2 2>&1 > /dev/null
-*/5 * * * * /usr/local/bin/heavy-traffic 5 1 2>&1 > /dev/null
-%{ endif ~}
 EOF
 
 crontab /etc/cron.d/traffic-gen

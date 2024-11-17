@@ -6,7 +6,7 @@ export CLOUD_ENV=aws
 exec > /var/log/$CLOUD_ENV-startup.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
-echo "${USERNAME}:${PASSWORD}" | chpasswd
+echo "ubuntu:Password123" | chpasswd
 sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 systemctl restart sshd
 
@@ -115,9 +115,6 @@ iptables -P INPUT ACCEPT
 iptables -P OUTPUT ACCEPT
 
 # Iptables rules
-%{~ for rule in IPTABLES_RULES }
-${rule}
-%{~ endfor }
 iptables -t nat -A POSTROUTING -d 10.0.0.0/8 -j ACCEPT
 iptables -t nat -A POSTROUTING -d 172.16.0.0/12 -j ACCEPT
 iptables -t nat -A POSTROUTING -d 192.168.0.0/16 -j ACCEPT
@@ -145,20 +142,113 @@ systemctl restart frr
 #########################################################
 
 tee /etc/ipsec.conf <<'EOF'
-${STRONGSWAN_IPSEC_CONF}
+config setup
+    charondebug="ike 2, knl 2, cfg 2, net 2, esp 2, dmn 2,  mgr 2"
+
+conn %default
+    type=tunnel
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    authby=secret
+    keyexchange=ikev2
+    installpolicy=yes
+    compress=no
+    mobike=no
+    #left=%defaultroute
+    leftsubnet=0.0.0.0/0
+    rightsubnet=0.0.0.0/0
+    ike=aes256-sha1-modp1024!
+    esp=aes256-sha1!
+
+conn tun1
+    left=10.10.1.9
+    leftid=34.254.42.252
+    right=52.18.208.157
+    rightid=52.18.208.157
+    auto=start
+    mark=100
+    leftupdown="/etc/ipsec.d/ipsec-vti.sh"
+conn tun2
+    left=10.10.1.9
+    leftid=34.254.42.252
+    right=54.220.113.46
+    rightid=54.220.113.46
+    auto=start
+    mark=101
+    leftupdown="/etc/ipsec.d/ipsec-vti.sh"
+
+# https://gist.github.com/heri16/2f59d22d1d5980796bfb
+
 EOF
 
 tee /etc/ipsec.secrets <<'EOF'
-${STRONGSWAN_IPSEC_SECRETS}
+10.10.1.9 52.18.208.157 : PSK "changeme"
+10.10.1.9 54.220.113.46 : PSK "changeme"
+
 EOF
 
 tee /etc/ipsec.d/ipsec-vti.sh <<'EOF'
-${STRONGSWAN_VTI_SCRIPT}
+#!/bin/bash
+
+LOG_FILE="/var/log/ipsec-vti.log"
+
+IP=$(which ip)
+IPTABLES=$(which iptables)
+
+PLUTO_MARK_OUT_ARR=(${PLUTO_MARK_OUT//// })
+PLUTO_MARK_IN_ARR=(${PLUTO_MARK_IN//// })
+
+case "$PLUTO_CONNECTION" in
+  tun1)
+    VTI_INTERFACE=tun1
+    VTI_LOCALADDR=169.254.220.10
+    VTI_REMOTEADDR=169.254.220.9
+    ;;
+  tun2)
+    VTI_INTERFACE=tun2
+    VTI_LOCALADDR=169.254.209.58
+    VTI_REMOTEADDR=169.254.209.57
+    ;;
+esac
+
+echo "$(date): Trigger - CONN=${PLUTO_CONNECTION}, VERB=${PLUTO_VERB}, ME=${PLUTO_ME}, PEER=${PLUTO_PEER}], PEER_CLIENT=${PLUTO_PEER_CLIENT}, MARK_OUT=${PLUTO_MARK_OUT_ARR}, MARK_IN=${PLUTO_MARK_IN_ARR}" >> $LOG_FILE
+
+case "$PLUTO_VERB" in
+  up-client)
+    $IP link add ${VTI_INTERFACE} type vti local ${PLUTO_ME} remote ${PLUTO_PEER} okey ${PLUTO_MARK_OUT_ARR[0]} ikey ${PLUTO_MARK_IN_ARR[0]}
+    sysctl -w net.ipv4.conf.${VTI_INTERFACE}.disable_policy=1
+    sysctl -w net.ipv4.conf.${VTI_INTERFACE}.rp_filter=2 || sysctl -w net.ipv4.conf.${VTI_INTERFACE}.rp_filter=0
+    $IP addr add ${VTI_LOCALADDR} remote ${VTI_REMOTEADDR} dev ${VTI_INTERFACE}
+    $IP link set ${VTI_INTERFACE} up mtu 1436
+    $IPTABLES -t mangle -I FORWARD -o ${VTI_INTERFACE} -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+    $IPTABLES -t mangle -I INPUT -p esp -s ${PLUTO_PEER} -d ${PLUTO_ME} -j MARK --set-xmark ${PLUTO_MARK_IN}
+    $IP route flush table 220
+    #/etc/init.d/bgpd reload || /etc/init.d/quagga force-reload bgpd
+    ;;
+  down-client)
+    $IP link del ${VTI_INTERFACE}
+    $IPTABLES -t mangle -D FORWARD -o ${VTI_INTERFACE} -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+    $IPTABLES -t mangle -D INPUT -p esp -s ${PLUTO_PEER} -d ${PLUTO_ME} -j MARK --set-xmark ${PLUTO_MARK_IN}
+    ;;
+esac
+
+# github source used
+# https://gist.github.com/heri16/2f59d22d1d5980796bfb
+
 EOF
 chmod a+x /etc/ipsec.d/ipsec-vti.sh
 
 tee /usr/local/bin/ipsec-auto-restart.sh <<'EOF'
-${STRONGSWAN_AUTO_RESTART}
+#!/bin/bash
+
+LOG_FILE="/var/log/ipsec-auto-restart.log"
+
+echo "$(date): Restarting IPsec service..." >> "$LOG_FILE"
+systemctl restart ipsec
+echo "$(date): IPsec service restarted." >> "$LOG_FILE"
+
 EOF
 chmod a+x /usr/local/bin/ipsec-auto-restart.sh
 
@@ -171,7 +261,59 @@ systemctl restart ipsec
 #########################################################
 
 tee /etc/frr/frr.conf <<'EOF'
-${FRR_CONF}
+!
+!-----------------------------------------
+! Global
+!-----------------------------------------
+frr version 7.2
+frr defaults traditional
+hostname $(hostname)
+log syslog informational
+service integrated-vtysh-config
+!
+!-----------------------------------------
+! Prefix Lists
+!-----------------------------------------
+ip prefix-list BLOCK_AWS_PREFIXES deny 1.2.3.4/32
+ip prefix-list BLOCK_AWS_PREFIXES permit 0.0.0.0/0 le 32
+!
+!-----------------------------------------
+! Interface
+!-----------------------------------------
+interface lo
+  ip address 192.168.10.10/32
+!
+!-----------------------------------------
+! Static Routes
+!-----------------------------------------
+ip route 0.0.0.0/0 10.10.1.1
+ip route 169.254.220.10/32 tun1
+ip route 169.254.209.58/32 tun2
+ip route 10.10.0.0/24 10.10.1.1
+!
+!-----------------------------------------
+! Route Maps
+!-----------------------------------------
+  route-map AWS permit 110
+  match ip address prefix-list all
+!
+!-----------------------------------------
+! BGP
+!-----------------------------------------
+router bgp 65001
+bgp router-id 192.168.10.10
+neighbor 169.254.220.9 remote-as 65011
+neighbor 169.254.209.57 remote-as 65011
+!
+address-family ipv4 unicast
+  network 10.10.0.0/24
+  neighbor 169.254.220.9 soft-reconfiguration inbound
+  neighbor 169.254.209.57 soft-reconfiguration inbound
+exit-address-family
+!
+line vty
+!
+
 EOF
 
 systemctl enable frr

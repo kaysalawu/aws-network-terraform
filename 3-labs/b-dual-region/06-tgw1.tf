@@ -1,8 +1,7 @@
 
-data "aws_caller_identity" "current" {}
-
 module "tgw1" {
   source          = "../../modules/transit-gateway"
+  providers       = { aws = aws.region1 }
   name            = "${local.tgw1_prefix}tgw"
   description     = "tgw for ${local.region1} attachments"
   amazon_side_asn = local.tgw1_bgp_asn
