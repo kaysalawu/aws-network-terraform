@@ -105,6 +105,42 @@ locals {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
     "region2" = { name = local.region2, dns_zone = local.region2_dns_zone }
   }
+
+  hub1_features = {
+    config_nva = {
+      # enable           = true
+      # enable_ipv6      = local.enable_ipv6
+      # type             = "linux"
+      # scenario_option  = "TwoNics"
+      # opn_type         = "TwoNics"
+      # custom_data      = base64encode(local.hub1_linux_nva_init)
+      # ilb_untrust_ip   = local.hub1_nva_ilb_untrust_addr
+      # ilb_trust_ip     = local.hub1_nva_ilb_trust_addr
+      # ilb_untrust_ipv6 = local.hub1_nva_ilb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub1_nva_ilb_trust_addr_v6
+    }
+  }
+
+  hub2_features = {
+    config_nva = {
+      # enable           = true
+      # enable_ipv6      = local.enable_ipv6
+      # type             = "linux"
+      # scenario_option  = "TwoNics"
+      # opn_type         = "TwoNics"
+      # custom_data      = base64encode(local.hub2_linux_nva_init)
+      # ilb_untrust_ip   = local.hub2_nva_ilb_untrust_addr
+      # ilb_trust_ip     = local.hub2_nva_ilb_trust_addr
+      # ilb_untrust_ipv6 = local.hub2_nva_ilb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub2_nva_ilb_trust_addr_v6
+    }
+  }
+
+  tgw1_features = {
+  }
+
+  tgw2_features = {
+  }
 }
 
 ####################################################
@@ -136,6 +172,8 @@ module "common_region2" {
   private_key_path      = var.private_key_path
   tags                  = {}
 }
+
+# private dns zones
 
 # vm startup scripts
 #----------------------------

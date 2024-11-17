@@ -164,11 +164,13 @@ variable "route_tables" {
 variable "transit_gateway_routes" {
   description = "A list of transit gateway routes to create"
   type = list(object({
-    route_table_name = string
     name             = string
     ipv4_prefixes    = optional(list(string), [])
+    route_table_name = optional(string, null) # creating a new route table
+    route_table_id   = optional(string, null) # modifying an existing route table
+    attachment_name  = optional(string, null) # creating a new attachment
+    attachment_id    = optional(string, null) # modifying an existing attachment
     blackhole        = optional(bool, false)
-    attachment_name  = optional(string, null)
   }))
   default = []
 
@@ -179,8 +181,23 @@ variable "transit_gateway_routes" {
     ])
     error_message = "Validation failed: If 'blackhole' is true in 'transit_gateway_routes', 'attachment_name' must not be specified, and vice versa."
   }
-}
 
+  validation {
+    condition = alltrue([
+      for route in var.transit_gateway_routes :
+      !(route.route_table_name != null && route.route_table_id != null)
+    ])
+    error_message = "Validation failed: 'route_table_name' and 'route_table_id' must not be specified concurrently. 'route_table_name' is used for creating a new route table, while 'route_table_id' is used for modifying an existing route table."
+  }
+
+  validation {
+    condition = alltrue([
+      for route in var.transit_gateway_routes :
+      !(route.attachment_name != null && route.attachment_id != null)
+    ])
+    error_message = "Validation failed: 'attachment_name' and 'attachment_id' must not be specified concurrently. 'attachment_name' is used for creating a new attachment, while 'attachment_id' is used for modifying an existing attachment."
+  }
+}
 
 variable "transit_gateway_route_table_id" {
   description = "Identifier of EC2 Transit Gateway Route Table to use with the Target Gateway when reusing it between multiple TGWs"
@@ -225,7 +242,7 @@ variable "ram_principals" {
 variable "ram_resource_share_arn" {
   description = "ARN of RAM resource share"
   type        = string
-  default     = ""
+  default     = null
 }
 
 variable "ram_tags" {

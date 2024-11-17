@@ -196,20 +196,9 @@ variable "private_dns_zone_vpc_associations" {
 variable "private_dns_config" {
   description = "A map of DNS configuration"
   type = object({
-    enable_service_discovery = optional(bool, false)
-    create_zone              = optional(bool, false)
-    zone_name                = optional(string, null)
-    vpc_associations         = optional(list(string), [])
+    zone_name = optional(string, null)
   })
   default = {}
-
-  validation {
-    condition = (
-      (var.private_dns_config.create_zone == false || var.private_dns_config.zone_name != null) &&
-      (length(var.private_dns_config.vpc_associations) == 0 || var.private_dns_config.zone_name != null)
-    )
-    error_message = "Validation failed: 1) If 'create_zone' is true, 'zone_name' must be specified. 2) If 'vpc_associations' are provided, 'zone_name' must be specified."
-  }
 }
 
 variable "nat_config" {

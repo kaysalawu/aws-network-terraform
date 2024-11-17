@@ -23,6 +23,10 @@ module "spoke4" {
 
   subnets = local.spoke4_subnets
 
+  private_dns_config = {
+    zone_name = aws_route53_zone.region2.name
+  }
+
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke4_subnets : k if v.scope == "private"] },
   ]
@@ -90,6 +94,10 @@ module "spoke5" {
   # ipv6_ipam_pool_id  = module.common_region2.ipv6_ipam_pool_id
 
   subnets = local.spoke5_subnets
+
+  private_dns_config = {
+    zone_name = aws_route53_zone.region2.name
+  }
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke5_subnets : k if v.scope == "private"] },
@@ -160,6 +168,10 @@ module "spoke6" {
   subnets = local.spoke6_subnets
 
   create_internet_gateway = true
+
+  private_dns_config = {
+    zone_name = aws_route53_zone.region2.name
+  }
 
   nat_config = [
     { scope = "public", subnet = "UntrustSubnet", },

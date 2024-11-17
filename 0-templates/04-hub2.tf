@@ -3,6 +3,8 @@
 # base
 ####################################################
 
+# network
+
 module "hub2" {
   source    = "../../modules/base"
   providers = { aws = aws.region2 }
@@ -22,16 +24,6 @@ module "hub2" {
   subnets = local.hub2_subnets
 
   create_internet_gateway = true
-
-  private_dns_config = {
-    create_zone = true
-    zone_name   = local.region2_dns_zone
-    vpc_associations = [
-      module.spoke4.vpc_id,
-      module.spoke5.vpc_id,
-      module.spoke6.vpc_id,
-    ]
-  }
 
   nat_config = [
     { scope = "public", subnet = "UntrustSubnet", },
@@ -69,10 +61,24 @@ module "hub2" {
   ]
 }
 
+# private dns
+
+resource "aws_route53_zone" "region2" {
+  provider = aws.region2
+  name     = local.region2_dns_zone
+  vpc {
+    vpc_id = module.hub2.vpc_id
+  }
+  lifecycle {
+    ignore_changes = [vpc, ]
+  }
+}
+
 resource "time_sleep" "hub2" {
   create_duration = "90s"
   depends_on = [
-    module.hub2
+    module.hub2,
+    aws_route53_zone.region2,
   ]
 }
 

@@ -239,20 +239,12 @@ resource "aws_nat_gateway" "natgw" {
 # private dns
 ####################################################
 
-# dns zone
+# association
 
-resource "aws_route53_zone" "private" {
-  count = var.private_dns_config.create_zone && var.private_dns_config.zone_name != null ? 1 : 0
-  name  = var.private_dns_config.zone_name
-  vpc {
-    vpc_id = aws_vpc.this.id
-  }
-  dynamic "vpc" {
-    for_each = { for vpc_id in var.private_dns_config.vpc_associations : vpc_id => vpc_id if var.private_dns_config.create_zone && var.private_dns_config.zone_name != null }
-    content {
-      vpc_id = vpc.value
-    }
-  }
+resource "aws_route53_zone_association" "this" {
+  count   = var.private_dns_config.zone_name != null ? 1 : 0
+  zone_id = data.aws_route53_zone.private.0.zone_id
+  vpc_id  = aws_vpc.this.id
 }
 
 # dns namespace
@@ -331,10 +323,10 @@ module "bastion" {
 
 resource "aws_route53_record" "bastion_public" {
   count   = var.bastion_config.enable && var.bastion_config.public_dns_zone_name != null ? 1 : 0
-  zone_id = data.aws_route53_zone.public.0.zone_id
+  zone_id = data.aws_route53_zone.public_bastion.0.zone_id
   name = (var.bastion_config.dns_prefix != null ?
-    "${var.bastion_config.dns_prefix}.${data.aws_route53_zone.public.0.name}" :
-    "${local.prefix}bastion.${data.aws_route53_zone.public.0.name}"
+    "${var.bastion_config.dns_prefix}.${data.aws_route53_zone.public_bastion.0.name}" :
+    "${local.prefix}bastion.${data.aws_route53_zone.public_bastion.0.name}"
   )
   type    = "A"
   ttl     = "300"

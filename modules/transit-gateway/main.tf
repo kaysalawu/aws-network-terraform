@@ -44,8 +44,10 @@ locals {
         key                    = "${route.name}-${cidr}"
         destination_cidr_block = cidr
         route_table_name       = route.route_table_name
-        blackhole              = try(route.blackhole, false)
+        route_table_id         = route.route_table_id
         attachment_name        = try(route.attachment_name, null)
+        attachment_id          = try(route.attachment_id, null)
+        blackhole              = try(route.blackhole, false)
       }
     ]
   ])
@@ -124,9 +126,9 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   )
 }
 
-# ################################################################################
-# # Route Table
-# ################################################################################
+################################################################################
+# Route Table
+################################################################################
 
 # resource
 
@@ -136,7 +138,7 @@ resource "aws_ec2_transit_gateway_route_table" "this" {
 
   tags = merge(
     var.tags,
-    { Name = "${each.value.name}-rt" },
+    { Name = "${each.value.name}" },
   )
 }
 
@@ -162,17 +164,29 @@ resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table].id
 }
 
-# transit gateway routes
+# transit gateway routes (for locally created tgw)
 
 resource "aws_ec2_transit_gateway_route" "this" {
-  for_each                       = { for route in local.flattened_transit_gateway_routes : route.key => route }
+  for_each                       = { for route in local.flattened_transit_gateway_routes : route.key => route if var.create_tgw }
   destination_cidr_block         = each.value.destination_cidr_block
   transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table_name].id
   transit_gateway_attachment_id  = try(aws_ec2_transit_gateway_vpc_attachment.this[each.value.attachment_name].id, null)
   blackhole                      = each.value.blackhole
 }
 
+# transit gateway routes (for externally created tgw)
+
+resource "aws_ec2_transit_gateway_route" "external" {
+  for_each                       = { for route in local.flattened_transit_gateway_routes : route.key => route if !var.create_tgw }
+  destination_cidr_block         = each.value.destination_cidr_block
+  transit_gateway_route_table_id = each.value.route_table_id
+  transit_gateway_attachment_id  = each.value.attachment_id
+  blackhole                      = each.value.blackhole
+}
+
+################################################################################
 # vpc routes
+################################################################################
 
 resource "aws_route" "this" {
   for_each                    = { for route in local.flattened_vpc_routes : route.key => route }
@@ -182,13 +196,12 @@ resource "aws_route" "this" {
   transit_gateway_id          = local.transit_gateway_id
 }
 
-# ################################################################################
-# # Resource Access Manager
-# ################################################################################
+################################################################################
+# Resource Access Manager
+################################################################################
 
 resource "aws_ram_resource_share" "this" {
-  count = var.create_tgw && var.share_tgw ? 1 : 0
-
+  count                     = var.create_tgw && var.share_tgw ? 1 : 0
   name                      = coalesce(var.ram_name, var.name)
   allow_external_principals = var.ram_allow_external_principals
 
@@ -200,21 +213,18 @@ resource "aws_ram_resource_share" "this" {
 }
 
 resource "aws_ram_resource_association" "this" {
-  count = var.create_tgw && var.share_tgw ? 1 : 0
-
+  count              = var.create_tgw && var.share_tgw ? 1 : 0
   resource_arn       = aws_ec2_transit_gateway.this[0].arn
   resource_share_arn = aws_ram_resource_share.this[0].id
 }
 
 resource "aws_ram_principal_association" "this" {
-  count = var.create_tgw && var.share_tgw ? length(var.ram_principals) : 0
-
+  count              = var.create_tgw && var.share_tgw ? length(var.ram_principals) : 0
   principal          = var.ram_principals[count.index]
   resource_share_arn = aws_ram_resource_share.this[0].arn
 }
 
 resource "aws_ram_resource_share_accepter" "this" {
-  count = !var.create_tgw && var.share_tgw ? 1 : 0
-
+  count     = !var.create_tgw && var.share_tgw && var.ram_resource_share_arn != null ? 1 : 0
   share_arn = var.ram_resource_share_arn
 }
