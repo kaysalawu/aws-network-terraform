@@ -1,12 +1,18 @@
-#! /bin/bash
+#!/bin/bash
+
+# !!! DO NOT USE THIS MACHINE FOR PRODUCTION !!!
 
 export CLOUD_ENV=aws
 exec > /var/log/$CLOUD_ENV-startup.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
-METADATA_HOSTNAME=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Name)
-hostnamectl set-hostname $METADATA_HOSTNAME
-sed -i "s/127.0.0.1.*/127.0.0.1 $HOSTNAME/" /etc/hosts
+echo "${USERNAME}:${PASSWORD}" | chpasswd
+sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+systemctl restart sshd
+
+HOST_NAME=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Name)
+hostnamectl set-hostname $HOST_NAME
+sed -i "s/127.0.0.1.*/127.0.0.1 $HOST_NAME/" /etc/hosts
 
 echo 'PS1="\\h:\\w\\$ "' >> /etc/bash.bashrc
 echo 'PS1="\\h:\\w\\$ "' >> /root/.bashrc
@@ -35,7 +41,7 @@ cat <<'EOF' >/usr/local/bin/ping-ipv4
 echo -e "\n ping ipv4 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   name=$(echo $target | jq -r '.name')
-  ipv4=$(echo $target | jq -r '.ipv4 // empty')
+  ipv4=$(echo $target | jq -r '.ipv4 // ""')
   if [[ -n "$ipv4" ]]; then
     result=$(timeout 3 ping -4 -qc2 -W1 $ipv4 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')
     echo "$name - $ipv4 - $result"
@@ -43,21 +49,6 @@ cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
 done
 EOF
 chmod a+x /usr/local/bin/ping-ipv4
-
-# ping-dns4
-cat <<'EOF' >/usr/local/bin/ping-dns4
-echo -e "\n ping dns ipv4 ...\n"
-cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
-  host=$(echo $target | jq -r '.host')
-  ping=$(echo $target | jq -r '.ping // false')
-  if [[ "$ping" == "true" ]]; then
-    resolved_ip=$(timeout 3 dig +short $host | tail -n1)
-    result=$(timeout 3 ping -4 -qc2 -W1 $host 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')
-    echo "$host - $resolved_ip - $result"
-  fi
-done
-EOF
-chmod a+x /usr/local/bin/ping-dns4
 
 # curl-ipv4
 cat <<'EOF' >/usr/local/bin/curl-ipv4
@@ -91,15 +82,15 @@ chmod a+x /usr/local/bin/curl-dns4
 # trace-ipv4
 cat <<'EOF' >/usr/local/bin/trace-ipv4
 echo -e "\n trace ipv4 ...\n"
-%{ for target in TARGETS ~}
-%{~ if try(target.ping, false) ~}
-%{~ if try(target.ipv4, "") != "" ~}
-echo -e "\n${target.name}"
-echo -e "-------------------------------------"
-timeout 9 tracepath -4 ${target.ipv4}
-%{ endif ~}
-%{ endif ~}
-%{ endfor ~}
+cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
+  name=$(echo $target | jq -r '.name')
+  ipv4=$(echo $target | jq -r '.ipv4 // ""')
+  if [[ -n "$ipv4" ]]; then
+    echo -e "\n$name"
+    echo -e "-------------------------------------"
+    timeout 9 tracepath -4 $ipv4
+  fi
+done
 EOF
 chmod a+x /usr/local/bin/trace-ipv4
 
@@ -123,7 +114,7 @@ cat <<'EOF' >/usr/local/bin/ping-dns6
 echo -e "\n ping dns ipv6 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   host=$(echo $target | jq -r '.host')
-  ping=$(echo $target | jq -r '.ping // false')
+  ping=$(echo $target | jq -r '.ping // true')
   if [[ "$ping" == "true" ]]; then
     resolved_ip=$(timeout 3 dig AAAA +short $host | tail -n1)
     result=$(timeout 3 ping -6 -qc2 -W1 $host 2>&1 | awk -F'/' 'END{ print (/^rtt/? "OK "$5" ms":"NA") }')
@@ -152,12 +143,10 @@ cat <<'EOF' >/usr/local/bin/trace-dns6
 echo -e "\n trace ipv6 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   name=$(echo $target | jq -r '.name')
-  ping=$(echo $target | jq -r '.ping // false')
-  if [[ "$ping" == "true" ]]; then
-    echo -e "\n$name"
-    echo -e "-------------------------------------"
-    timeout 9 tracepath -6 $host
-  fi
+  host=$(echo $target | jq -r '.host')
+  echo -e "\n$name"
+  echo -e "-------------------------------------"
+  timeout 9 tracepath -6 $host
 done
 EOF
 chmod a+x /usr/local/bin/trace-dns6
@@ -171,9 +160,9 @@ resolvectl status
 EOF
 chmod a+x /usr/local/bin/dns-info
 
-# traffic generators (ipv4)
+# traffic gen (ipv4)
 
-# light-traffic generator
+## light
 cat <<'EOF' >/usr/local/bin/light-traffic
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   probe=$(echo $target | jq -r '.probe // false')
@@ -188,7 +177,7 @@ done
 EOF
 chmod a+x /usr/local/bin/light-traffic
 
-# heavy-traffic generator
+## heavy
 cat <<'EOF' >/usr/local/bin/heavy-traffic
 #!/bin/bash
 i=0
@@ -202,9 +191,9 @@ done
 EOF
 chmod a+x /usr/local/bin/heavy-traffic
 
-# traffic generators (ipv6)
+# traffic gen (ipv6)
 
-# light-traffic generator
+## light
 cat <<'EOF' >/usr/local/bin/light-traffic-ipv6
 echo -e "\n light traffic ipv6 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do

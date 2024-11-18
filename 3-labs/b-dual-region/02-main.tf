@@ -34,7 +34,22 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  region     = local.default_region
+  alias      = "default"
+  region     = local.region1
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_access_key
+}
+
+provider "aws" {
+  alias      = "region1"
+  region     = local.region1
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_access_key
+}
+
+provider "aws" {
+  alias      = "region2"
+  region     = local.region2
   access_key = var.aws_access_key
   secret_key = var.aws_secret_access_key
 }
@@ -43,9 +58,10 @@ provider "aws" {
 # data
 ####################################################
 
-data "aws_ami" "ubuntu" {
+data "aws_ami" "ubuntu_region1" {
+  provider    = aws.region1
   most_recent = true
-
+  owners      = ["099720109477"]
   filter {
     name   = "name"
     values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
@@ -54,13 +70,30 @@ data "aws_ami" "ubuntu" {
     name   = "virtualization-type"
     values = ["hvm"]
   }
+}
 
-  owners = ["099720109477"]
+data "aws_ami" "ubuntu_region2" {
+  provider    = aws.region2
+  most_recent = true
+  owners      = ["099720109477"]
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
 }
 
 data "aws_route53_zone" "public" {
+  provider     = aws.default
   name         = "cloudtuple.org."
   private_zone = false
+}
+
+data "aws_caller_identity" "current" {
+  provider = aws.default
 }
 
 ####################################################
@@ -72,81 +105,18 @@ locals {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
     "region2" = { name = local.region2, dns_zone = local.region2_dns_zone }
   }
-  region1_default_udr_destinations = [
-    { name = "default-region1", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "defaultv6-region1", address_prefix = ["::/0"], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 }
-  ]
-  spoke2_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "hub1", address_prefix = [local.hub1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "hub1v6", address_prefix = [local.hub1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-  ])
-  hub1_udr_main_routes = concat(local.region1_default_udr_destinations, [
-    { name = "spoke1", address_prefix = [local.spoke1_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke2", address_prefix = [local.spoke2_cidr.0, ], next_hop_ip = local.hub1_nva_ilb_trust_addr },
-    { name = "spoke1v6", address_prefix = [local.spoke1_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-    { name = "spoke2v6", address_prefix = [local.spoke2_cidr.1, ], next_hop_ip = local.hub1_nva_ilb_trust_addr_v6 },
-  ])
-  region2_default_udr_destinations = [
-    { name = "default-region2", address_prefix = ["0.0.0.0/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "defaultv6-region2", address_prefix = ["::/0"], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 }
-  ]
-  spoke5_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "hub2", address_prefix = [local.hub2_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "hub2v6", address_prefix = [local.hub2_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-  ])
-  hub2_udr_main_routes = concat(local.region2_default_udr_destinations, [
-    { name = "spoke4", address_prefix = [local.spoke4_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke5", address_prefix = [local.spoke5_cidr.0, ], next_hop_ip = local.hub2_nva_ilb_trust_addr },
-    { name = "spoke4v6", address_prefix = [local.spoke4_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-    { name = "spoke5v6", address_prefix = [local.spoke5_cidr.1, ], next_hop_ip = local.hub2_nva_ilb_trust_addr_v6 },
-  ])
-
-  hub1_features = {
-    config_nva = {
-      # enable           = true
-      # enable_ipv6      = local.enable_ipv6
-      # type             = "linux"
-      # scenario_option  = "TwoNics"
-      # opn_type         = "TwoNics"
-      # custom_data      = base64encode(local.hub1_linux_nva_init)
-      # ilb_untrust_ip   = local.hub1_nva_ilb_untrust_addr
-      # ilb_trust_ip     = local.hub1_nva_ilb_trust_addr
-      # ilb_untrust_ipv6 = local.hub1_nva_ilb_untrust_addr_v6
-      # ilb_trust_ipv6   = local.hub1_nva_ilb_trust_addr_v6
-    }
-  }
-
-  hub2_features = {
-    config_nva = {
-      # enable           = true
-      # enable_ipv6      = local.enable_ipv6
-      # type             = "linux"
-      # scenario_option  = "TwoNics"
-      # opn_type         = "TwoNics"
-      # custom_data      = base64encode(local.hub2_linux_nva_init)
-      # ilb_untrust_ip   = local.hub2_nva_ilb_untrust_addr
-      # ilb_trust_ip     = local.hub2_nva_ilb_trust_addr
-      # ilb_untrust_ipv6 = local.hub2_nva_ilb_untrust_addr_v6
-      # ilb_trust_ipv6   = local.hub2_nva_ilb_trust_addr_v6
-    }
-  }
-
-  tgw1_features = {
-  }
-
-  tgw2_features = {
-  }
 }
 
 ####################################################
 # common resources
 ####################################################
 
-module "common" {
+module "common_region1" {
   source                = "../../modules/common"
+  providers             = { aws = aws.region1 }
   env                   = "common"
   prefix                = local.prefix
-  regions               = local.regions
+  region                = local.region1
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
   public_key_path       = var.public_key_path
@@ -154,7 +124,18 @@ module "common" {
   tags                  = {}
 }
 
-# private dns zones
+module "common_region2" {
+  source                = "../../modules/common"
+  providers             = { aws = aws.region2 }
+  env                   = "common"
+  prefix                = local.prefix
+  region                = local.region2
+  private_prefixes_ipv4 = local.private_prefixes_ipv4
+  private_prefixes_ipv6 = local.private_prefixes_ipv6
+  public_key_path       = var.public_key_path
+  private_key_path      = var.private_key_path
+  tags                  = {}
+}
 
 # vm startup scripts
 #----------------------------
@@ -203,11 +184,15 @@ locals {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = local.vm_script_targets
     TARGETS_HEAVY_TRAFFIC_GEN = [for target in local.vm_script_targets : target.host if try(target.probe, false)]
+    USERNAME                  = local.username
+    PASSWORD                  = local.password
   }
   vm_init_vars = {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = []
     TARGETS_HEAVY_TRAFFIC_GEN = []
+    USERNAME                  = local.username
+    PASSWORD                  = local.password
   }
   proxy_init_vars = {
     ONPREM_LOCAL_RECORDS = []
@@ -218,6 +203,8 @@ locals {
       local.private_prefixes_ipv4,
       ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
     )
+    USERNAME = local.username
+    PASSWORD = local.password
   }
   vm_init_files = {
     "${local.init_dir}/fastapi/docker-compose-http-80.yml"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-80.yml", {}) }
@@ -275,144 +262,22 @@ module "probe_vm_cloud_init" {
 
 # branch1
 
-####################################################
-# firewall policy
-####################################################
-
-# policy
-
-####################################################
-# nva
-####################################################
-
-# hub1
-/*
-locals {
-  hub1_nva_route_map_onprem    = "ONPREM"
-  hub1_nva_route_map_aws       = "AWS"
-  hub1_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
-  hub1_nva_vars = {
-    LOCAL_ASN = local.hub1_nva_asn
-    LOOPBACK0 = local.hub1_nva_loopback0
-    LOOPBACKS = []
-
-    PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} deny ${local.hub1_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub1_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
-    ]
-
-    ROUTE_MAPS = [
-      # "match ip address prefix-list all",
-      # "set ip next-hop ${local.hub1_nva_ilb_trust_addr}"
-    ]
-    STATIC_ROUTES = [
-      { prefix = "0.0.0.0/0", next_hop = local.hub1_default_gw_trust },
-      # { prefix = "${module.tgw1.router_bgp_ip0}/32", next_hop = local.hub1_default_gw_trust },
-      # { prefix = "${module.tgw1.router_bgp_ip1}/32", next_hop = local.hub1_default_gw_trust },
-      { prefix = local.spoke2_cidr[0], next_hop = local.hub1_default_gw_trust },
-    ]
-    TUNNELS = []
-    BGP_SESSIONS_IPV4 = [
-      {
-        peer_asn        = "module.tgw1.bgp_asn"
-        peer_ip         = "module.tgw1.router_bgp_ip0"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-      {
-        peer_asn        = "module.tgw1.bgp_asn"
-        peer_ip         = "module.tgw1.router_bgp_ip1"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-    ]
-    BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub1_subnets["MainSubnet"].cidr[0],
-      local.spoke2_cidr[0],
-    ]
+resource "aws_eip" "branch1_nva_untrust" {
+  provider = aws.region1
+  domain   = "vpc"
+  tags = {
+    Name = "${local.branch1_prefix}nva-untrust"
   }
-  hub1_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub1_nva_vars, {
-    TARGETS                   = local.vm_script_targets
-    TARGETS_LIGHT_TRAFFIC_GEN = []
-    TARGETS_HEAVY_TRAFFIC_GEN = []
-    ENABLE_TRAFFIC_GEN        = false
-    IPTABLES_RULES = [
-      "sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 50443 -j DNAT --to-destination ${local.spoke1_vm_addr}:8080",
-      "sudo iptables -A FORWARD -p tcp -d ${local.spoke1_vm_addr} --dport 8080 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT",
-    ]
-    FRR_CONF                 = templatefile("../../scripts/frr/frr.conf", merge(local.hub1_nva_vars, {}))
-    STRONGSWAN_VTI_SCRIPT    = ""
-    STRONGSWAN_IPSEC_SECRETS = ""
-    STRONGSWAN_IPSEC_CONF    = ""
-    STRONGSWAN_AUTO_RESTART  = ""
-  }))
 }
 
-# hub2
+# branch3
 
-locals {
-  hub2_nva_route_map_onprem    = "ONPREM"
-  hub2_nva_route_map_aws       = "AWS"
-  hub2_nva_route_map_block_aws = "BLOCK_HUB_GW_SUBNET"
-  hub2_nva_vars = {
-    LOCAL_ASN = local.hub2_nva_asn
-    LOOPBACK0 = local.hub2_nva_loopback0
-    LOOPBACKS = []
-
-    PREFIX_LISTS = [
-      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} deny ${local.hub2_subnets["GatewaySubnet"].cidr[0]}",
-      # "ip prefix-list ${local.hub2_nva_route_map_block_aws} permit 0.0.0.0/0 le 32",
-    ]
-
-    ROUTE_MAPS = [
-      # "match ip address prefix-list all",
-      # "set ip next-hop ${local.hub2_nva_ilb_trust_addr}"
-    ]
-    STATIC_ROUTES = [
-      { prefix = "0.0.0.0/0", next_hop = local.hub2_default_gw_trust },
-      # { prefix = "${module.tgw2.router_bgp_ip0}/32", next_hop = local.hub2_default_gw_trust },
-      # { prefix = "${module.tgw2.router_bgp_ip1}/32", next_hop = local.hub2_default_gw_trust },
-      { prefix = local.spoke5_cidr[0], next_hop = local.hub2_default_gw_trust },
-    ]
-    TUNNELS = []
-    BGP_SESSIONS_IPV4 = [
-      {
-        peer_asn        = "module.tgw2.bgp_asn"
-        peer_ip         = "module.tgw2.router_bgp_ip0"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-      {
-        peer_asn        = "module.tgw2.bgp_asn"
-        peer_ip         = "module.tgw2.router_bgp_ip1"
-        ebgp_multihop   = true
-        source_loopback = true
-        route_maps      = []
-      },
-    ]
-    BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.hub2_subnets["MainSubnet"].cidr[0],
-      local.spoke5_cidr[0],
-    ]
+resource "aws_eip" "branch3_nva_untrust" {
+  provider = aws.region2
+  domain   = "vpc"
+  tags = {
+    Name = "${local.branch3_prefix}nva-untrust"
   }
-  hub2_linux_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.hub2_nva_vars, {
-    TARGETS                   = local.vm_script_targets
-    TARGETS_LIGHT_TRAFFIC_GEN = []
-    TARGETS_HEAVY_TRAFFIC_GEN = []
-    ENABLE_TRAFFIC_GEN        = false
-    IPTABLES_RULES = [
-      "sudo iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 50443 -j DNAT --to-destination ${local.spoke4_vm_addr}:8080",
-      "sudo iptables -A FORWARD -p tcp -d ${local.spoke4_vm_addr} --dport 8080 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT",
-    ]
-    FRR_CONF                 = templatefile("../../scripts/frr/frr.conf", merge(local.hub2_nva_vars, {}))
-    STRONGSWAN_VTI_SCRIPT    = ""
-    STRONGSWAN_IPSEC_SECRETS = ""
-    STRONGSWAN_IPSEC_CONF    = ""
-    STRONGSWAN_AUTO_RESTART  = ""
-  }))
 }
 
 ####################################################
@@ -426,8 +291,6 @@ locals {
     "output/startup-probe.sh"       = templatefile("../../scripts/startup.sh", local.probe_init_vars)
     "output/probe-cloud-config.yml" = module.probe_vm_cloud_init.cloud_config
     "output/vm-cloud-config.yml"    = module.vm_cloud_init.cloud_config
-    "output/hub1-linux-nva.sh"      = local.hub1_linux_nva_init
-    "output/hub2-linux-nva.sh"      = local.hub2_linux_nva_init
   }
 }
 
@@ -436,4 +299,3 @@ resource "local_file" "main_files" {
   filename = each.key
   content  = each.value
 }
-*/

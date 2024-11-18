@@ -39,6 +39,18 @@ variable "ssh_public_key" {
   default     = null
 }
 
+variable "private_prefixes_ipv4" {
+  description = "A list of private prefixes to allow access to"
+  type        = list(string)
+  default     = ["10.0.0.0/8", ]
+}
+
+variable "private_prefixes_ipv6" {
+  description = "A list of private prefixes to allow access to"
+  type        = list(string)
+  default     = ["fd00::/8"]
+}
+
 variable "cidr" {
   description = "(Optional) The IPv4 CIDR block for the VPC. CIDR can be explicitly set or it can be derived from IPAM using `ipv4_netmask_length` & `ipv4_ipam_pool_id`"
   type        = list(string)
@@ -138,14 +150,16 @@ variable "dhcp_options" {
 variable "subnets" {
   description = "A map of subnet configurations"
   type = map(object({
-    cidr         = string
-    ipv6_cidr    = optional(string)
-    ipv6_newbits = optional(number, 8)
-    ipv6_netnum  = optional(string, 0)
-    az           = optional(string, "a")
-    type         = optional(string, "private")
+    cidr          = string
+    ipv6_cidr     = optional(string, null)
+    ipv6_newbits  = optional(number, 8)
+    ipv6_netnum   = optional(string, 0)
+    az            = optional(string, "a")
+    scope         = optional(string, "private")
+    public_natgw  = optional(bool, false)
+    private_natgw = optional(bool, false)
 
-    map_public_ip_on_launch = optional(bool, true)
+    map_public_ip_on_launch = optional(bool, false)
   }))
   default = {}
 }
@@ -159,21 +173,12 @@ variable "bastion_config" {
     private_ips          = optional(list(string), [])
     ipv6_addresses       = optional(list(string), [])
     iam_instance_profile = optional(string, null)
+    public_dns_zone_name = optional(string, null)
+    dns_prefix           = optional(string, null)
   })
   default = {
-    enable               = false
-    instance_type        = "t2.micro"
-    key_name             = null
-    private_ips          = []
-    ipv6_addresses       = []
-    iam_instance_profile = null
+    enable = false
   }
-}
-
-variable "create_private_dns_zone" {
-  description = "Should be true to create a private DNS zone for the VPC"
-  type        = bool
-  default     = false
 }
 
 variable "private_dns_zone_name" {
@@ -182,14 +187,87 @@ variable "private_dns_zone_name" {
   default     = null
 }
 
-variable "public_dns_zone_name" {
-  description = "The name of the public DNS zone to associate with the VPC"
-  type        = string
-  default     = null
-}
-
 variable "private_dns_zone_vpc_associations" {
   description = "A list of VPC IDs to associate with the private DNS zone"
   type        = list(string)
   default     = []
+}
+
+variable "private_dns_config" {
+  description = "A map of DNS configuration"
+  type = object({
+    zone_name = optional(string, null)
+  })
+  default = {}
+}
+
+variable "nat_config" {
+  description = "A list of NAT configuration"
+  type = list(object({
+    scope      = string
+    subnet     = string
+    private_ip = optional(string, null)
+  }))
+  default = []
+}
+
+variable "route_table_config" {
+  description = "A list of route table configuration"
+  type = list(object({
+    scope   = string
+    subnets = optional(list(string), [])
+    routes = optional(list(object({
+      ipv4_cidr          = optional(string, null)
+      ipv6_cidr          = optional(string, null)
+      nat_gateway        = optional(bool, false)
+      internet_gateway   = optional(bool, false)
+      nat_gateway_subnet = optional(string, null)
+    })), [])
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for rt in var.route_table_config : alltrue([
+        for route in rt.routes : !(route.ipv4_cidr != null && route.ipv6_cidr != null)
+      ])
+    ])
+    error_message = "Only one of ipv4_cidr or ipv6_cidr can be specified per route."
+  }
+
+  validation {
+    condition = alltrue([
+      for rt in var.route_table_config : alltrue([
+        for route in rt.routes : !(route.ipv6_cidr != null && route.nat_gateway == true)
+      ])
+    ])
+    error_message = "If ipv6_cidr is specified, nat_gateway cannot be true in any route."
+  }
+}
+
+variable "create_internet_gateway" {
+  description = "Should be true to create an internet gateway"
+  type        = bool
+  default     = false
+}
+
+variable "dns_resolver_config" {
+  description = "DNS resolver configuration"
+  type = list(object({
+    inbound = list(object({
+      subnet = string
+      ip     = optional(string, null)
+    }))
+    outbound = list(object({
+      subnet = string
+      ip     = optional(string, null)
+    }))
+    rules = optional(list(object({
+      domain     = string
+      target_ips = list(string)
+      rule_type  = optional(string, "FORWARD")
+    })), [])
+    additional_associated_vpc_ids = optional(list(string), [])
+  }))
+  default = []
 }

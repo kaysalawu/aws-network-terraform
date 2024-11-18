@@ -1,8 +1,29 @@
-#!/bin/sh
+#!/bin/bash
 
-# exec > /var/log/linux-nva.log 2>&1
+# !!! DO NOT USE THIS MACHINE FOR PRODUCTION !!!
 
-apt-get -y update
+export CLOUD_ENV=aws
+exec > /var/log/$CLOUD_ENV-startup.log 2>&1
+export DEBIAN_FRONTEND=noninteractive
+
+echo "${USERNAME}:${PASSWORD}" | chpasswd
+sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+systemctl restart sshd
+
+HOST_NAME=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Name)
+hostnamectl set-hostname $HOST_NAME
+sed -i "s/127.0.0.1.*/127.0.0.1 $HOST_NAME/" /etc/hosts
+
+echo 'PS1="\\h:\\w\\$ "' >> /etc/bash.bashrc
+echo 'PS1="\\h:\\w\\$ "' >> /root/.bashrc
+echo 'PS1="\\h:\\w\\$ "' >> /home/ubuntu/.bashrc
+
+sudo rm /etc/resolv.conf
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
+
+apt update
+apt install -y unzip jq tcpdump dnsutils net-tools nmap
+apt install -y awscli
 
 #########################################################
 # ip forwarding
@@ -187,7 +208,7 @@ chmod a+x /usr/local/bin/ipsec-debug
 #-----------------------------------
 
 cat <<EOF > /etc/cron.d/ipsec-auto-restart
-*/30 * * * * /bin/bash /usr/local/bin/ipsec-auto-restart.sh 2>&1 > /dev/null
+*/15 * * * * /bin/bash /usr/local/bin/ipsec-auto-restart.sh 2>&1 > /dev/null
 EOF
 
 crontab /etc/cron.d/ipsec-auto-restart

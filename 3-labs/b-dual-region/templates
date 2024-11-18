@@ -2,3 +2,11 @@
 ../../0-templates/03-branch1.tf
 ../../0-templates/03-branch3.tf
 ../../0-templates/04-hub1.tf
+../../0-templates/04-hub2.tf
+../../0-templates/05-spokes-region1.tf
+../../0-templates/05-spokes-region2.tf
+../../0-templates/06-tgw1.tf
+../../0-templates/06-tgw2.tf
+../../0-templates/07-tgw1-conn.tf
+../../0-templates/07-tgw2-conn.tf
+../../0-templates/08-tgw-inter-conn.tf
