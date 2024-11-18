@@ -25,6 +25,31 @@ module "hub2" {
 
   create_internet_gateway = true
 
+  dns_resolver_config = [{
+    inbound = [
+      { subnet = "DnsInboundSubnet1", ip = local.hub2_dns_in_addr1 },
+      { subnet = "DnsInboundSubnet2", ip = local.hub2_dns_in_addr2 }
+    ]
+    outbound = [
+      { subnet = "DnsOutboundSubnet1", ip = local.hub2_dns_out_addr1 },
+      { subnet = "DnsOutboundSubnet2", ip = local.hub2_dns_out_addr2 }
+    ]
+    rules = [
+      {
+        domain = local.onprem_domain
+        target_ips = [
+          local.branch3_dns_addr,
+          local.branch1_dns_addr,
+        ]
+      },
+    ]
+    additional_associated_vpc_ids = [
+      module.spoke4.vpc_id,
+      module.spoke5.vpc_id,
+      module.spoke6.vpc_id,
+    ]
+  }]
+
   nat_config = [
     { scope = "public", subnet = "UntrustSubnet", },
   ]

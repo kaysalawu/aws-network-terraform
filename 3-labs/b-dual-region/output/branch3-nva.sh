@@ -164,17 +164,17 @@ conn %default
 
 conn tun1
     left=10.30.1.9
-    leftid=3.16.39.69
-    right=3.133.189.185
-    rightid=3.133.189.185
+    leftid=18.119.149.140
+    right=18.119.95.212
+    rightid=18.119.95.212
     auto=start
     mark=100
     leftupdown="/etc/ipsec.d/ipsec-vti.sh"
 conn tun2
     left=10.30.1.9
-    leftid=3.16.39.69
-    right=52.15.71.155
-    rightid=52.15.71.155
+    leftid=18.119.149.140
+    right=52.15.222.166
+    rightid=52.15.222.166
     auto=start
     mark=101
     leftupdown="/etc/ipsec.d/ipsec-vti.sh"
@@ -184,8 +184,8 @@ conn tun2
 EOF
 
 tee /etc/ipsec.secrets <<'EOF'
-10.30.1.9 3.133.189.185 : PSK "changeme"
-10.30.1.9 52.15.71.155 : PSK "changeme"
+10.30.1.9 18.119.95.212 : PSK "changeme"
+10.30.1.9 52.15.222.166 : PSK "changeme"
 
 EOF
 
@@ -203,13 +203,13 @@ PLUTO_MARK_IN_ARR=(${PLUTO_MARK_IN//// })
 case "$PLUTO_CONNECTION" in
   tun1)
     VTI_INTERFACE=tun1
-    VTI_LOCALADDR=169.254.29.18
-    VTI_REMOTEADDR=169.254.29.17
+    VTI_LOCALADDR=169.254.140.110
+    VTI_REMOTEADDR=169.254.140.109
     ;;
   tun2)
     VTI_INTERFACE=tun2
-    VTI_LOCALADDR=169.254.177.150
-    VTI_REMOTEADDR=169.254.177.149
+    VTI_LOCALADDR=169.254.121.190
+    VTI_REMOTEADDR=169.254.121.189
     ;;
 esac
 
@@ -287,8 +287,8 @@ interface lo
 ! Static Routes
 !-----------------------------------------
 ip route 0.0.0.0/0 10.30.1.1
-ip route 169.254.29.18/32 tun1
-ip route 169.254.177.150/32 tun2
+ip route 169.254.140.110/32 tun1
+ip route 169.254.121.190/32 tun2
 ip route 10.30.0.0/24 10.30.1.1
 !
 !-----------------------------------------
@@ -302,13 +302,13 @@ ip route 10.30.0.0/24 10.30.1.1
 !-----------------------------------------
 router bgp 65003
 bgp router-id 192.168.30.30
-neighbor 169.254.29.17 remote-as 65022
-neighbor 169.254.177.149 remote-as 65022
+neighbor 169.254.140.109 remote-as 65022
+neighbor 169.254.121.189 remote-as 65022
 !
 address-family ipv4 unicast
   network 10.30.0.0/24
-  neighbor 169.254.29.17 soft-reconfiguration inbound
-  neighbor 169.254.177.149 soft-reconfiguration inbound
+  neighbor 169.254.140.109 soft-reconfiguration inbound
+  neighbor 169.254.121.189 soft-reconfiguration inbound
 exit-address-family
 !
 line vty

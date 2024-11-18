@@ -7,6 +7,17 @@ locals {
     var.tgw_default_route_table_tags,
   )
 
+  flattened_propagated_route_table_names = flatten([
+    for index, attachment in var.vpc_attachments : [
+      for propagated_route_table_name in attachment.propagated_route_table_names : {
+        key                         = "${propagated_route_table_name}--${attachment.associated_route_table_name}--${attachment.name}"
+        attachment_name             = attachment.name
+        propagated_route_table_name = propagated_route_table_name
+        associated_route_table_name = attachment.associated_route_table_name
+      }
+    ]
+  ])
+
   flattened_vpc_routes_ipv4 = flatten([
     for index, attachment in var.vpc_attachments : [
       for route_index, route in attachment.vpc_routes : [
@@ -111,11 +122,11 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "this" {
   appliance_mode_support = each.value.appliance_mode_support
 
   transit_gateway_default_route_table_association = (
-    each.value.route_table == null ? true :
+    each.value.associated_route_table_name == null ? true :
     each.value.transit_gateway_default_route_table_association
   )
   transit_gateway_default_route_table_propagation = (
-    each.value.route_table == null ? true :
+    each.value.associated_route_table_name == null ? true :
     each.value.transit_gateway_default_route_table_propagation
   )
 
@@ -147,10 +158,10 @@ resource "aws_ec2_transit_gateway_route_table" "this" {
 resource "aws_ec2_transit_gateway_route_table_association" "this" {
   for_each = { for index, attachment in var.vpc_attachments :
     attachment.name => attachment
-    if var.create_tgw && var.default_route_table_association == "disable" && attachment.route_table != null
+    if var.create_tgw && var.default_route_table_association == "disable" && attachment.associated_route_table_name != null
   }
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
-  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table].id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.associated_route_table_name].id
 }
 
 # propagation
@@ -158,10 +169,22 @@ resource "aws_ec2_transit_gateway_route_table_association" "this" {
 resource "aws_ec2_transit_gateway_route_table_propagation" "this" {
   for_each = { for index, attachment in var.vpc_attachments :
     attachment.name => attachment
-    if var.create_tgw && var.default_route_table_propagation == "disable" && attachment.route_table != null
+    if var.create_tgw && var.default_route_table_propagation == "disable" && attachment.associated_route_table_name != null
   }
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.key].id
-  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.route_table].id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.associated_route_table_name].id
+}
+
+resource "aws_ec2_transit_gateway_route_table_propagation" "additional" {
+  for_each                       = { for v in local.flattened_propagated_route_table_names : v.key => v }
+  transit_gateway_attachment_id  = aws_ec2_transit_gateway_vpc_attachment.this[each.value.attachment_name].id
+  transit_gateway_route_table_id = aws_ec2_transit_gateway_route_table.this[each.value.propagated_route_table_name].id
+}
+
+resource "aws_ec2_transit_gateway_route_table_propagation" "additional_external" {
+  for_each                       = { for v in local.flattened_propagated_route_table_names : v.key => v if !var.create_tgw }
+  transit_gateway_attachment_id  = each.value.id
+  transit_gateway_route_table_id = each.value.associated_route_table_id
 }
 
 # transit gateway routes (for locally created tgw)

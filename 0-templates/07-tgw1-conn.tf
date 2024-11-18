@@ -198,10 +198,16 @@ resource "aws_ec2_transit_gateway_route_table_association" "branch1_vpn_conn" {
 
 # propagation
 
-resource "aws_ec2_transit_gateway_route_table_propagation" "branch1_vpn_conn" {
+resource "aws_ec2_transit_gateway_route_table_propagation" "branch1_vpn_conn_hub" {
   provider                       = aws.region1
   transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
   transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
+}
+
+resource "aws_ec2_transit_gateway_route_table_propagation" "branch1_vpn_conn_vpc" {
+  provider                       = aws.region1
+  transit_gateway_attachment_id  = aws_vpn_connection.branch1_vpn_conn.transit_gateway_attachment_id
+  transit_gateway_route_table_id = module.tgw1.route_table_ids["vpc"]
 }
 
 ####################################################

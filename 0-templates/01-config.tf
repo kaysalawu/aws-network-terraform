@@ -116,11 +116,13 @@ locals {
     ("ManagementSubnet")      = { cidr = "10.11.3.0/24", ipv6_cidr = "2000:abc:11:3::/64", ipv6_newbits = 8, ipv6_netnum = 3, az = "a", scope = "private", }
     ("AksSubnet")             = { cidr = "10.11.4.0/24", ipv6_cidr = "2000:abc:11:4::/64", ipv6_newbits = 8, ipv6_netnum = 4, az = "a", scope = "private", }
     ("TestSubnet")            = { cidr = "10.11.5.0/24", ipv6_cidr = "2000:abc:11:5::/64", ipv6_newbits = 8, ipv6_netnum = 5, az = "a", scope = "private", }
-    ("DnsInboundSubnet")      = { cidr = "10.11.6.0/24", ipv6_cidr = "2000:abc:11:6::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "a", scope = "private", }
-    ("DnsOutboundSubnet")     = { cidr = "10.11.7.0/24", ipv6_cidr = "2000:abc:11:7::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("PrivateEndpointSubnet") = { cidr = "10.11.8.0/24", ipv6_cidr = "2000:abc:11:8::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("AppGatewaySubnet")      = { cidr = "10.11.9.0/24", ipv6_cidr = "2000:abc:11:9::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("LoadBalancerSubnet")    = { cidr = "10.11.10.0/24", ipv6_cidr = "2000:abc:11:10::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("DnsInboundSubnet1")     = { cidr = "10.11.6.0/24", ipv6_cidr = "2000:abc:11:6::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "a", scope = "private", }
+    ("DnsInboundSubnet2")     = { cidr = "10.11.7.0/24", ipv6_cidr = "2000:abc:11:7::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "a", scope = "private", }
+    ("DnsOutboundSubnet1")    = { cidr = "10.11.8.0/24", ipv6_cidr = "2000:abc:11:8::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("DnsOutboundSubnet2")    = { cidr = "10.11.9.0/24", ipv6_cidr = "2000:abc:11:9::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("PrivateEndpointSubnet") = { cidr = "10.11.10.0/24", ipv6_cidr = "2000:abc:11:10::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("AppGatewaySubnet")      = { cidr = "10.11.11.0/24", ipv6_cidr = "2000:abc:11:11::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("LoadBalancerSubnet")    = { cidr = "10.11.12.0/24", ipv6_cidr = "2000:abc:11:12::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
   }
   hub1_default_gw_main      = cidrhost(local.hub1_subnets["MainSubnet"].cidr, 1)
   hub1_default_gw_untrust   = cidrhost(local.hub1_subnets["UntrustSubnet"].cidr, 1)
@@ -138,8 +140,10 @@ locals {
   hub1_nva_ilb_trust_addr_v6   = cidrhost(local.hub1_subnets["TrustSubnet"].ipv6_cidr, 153)
   hub1_nva_ilb_untrust_addr_v6 = cidrhost(local.hub1_subnets["UntrustSubnet"].ipv6_cidr, 153)
 
-  hub1_dns_in_addr     = cidrhost(local.hub1_subnets["DnsInboundSubnet"].cidr, 4)
-  hub1_dns_out_addr    = cidrhost(local.hub1_subnets["DnsOutboundSubnet"].cidr, 4)
+  hub1_dns_in_addr1    = cidrhost(local.hub1_subnets["DnsInboundSubnet1"].cidr, 4)
+  hub1_dns_in_addr2    = cidrhost(local.hub1_subnets["DnsInboundSubnet2"].cidr, 4)
+  hub1_dns_out_addr1   = cidrhost(local.hub1_subnets["DnsOutboundSubnet1"].cidr, 4)
+  hub1_dns_out_addr2   = cidrhost(local.hub1_subnets["DnsOutboundSubnet2"].cidr, 4)
   hub1_nva_loopback0   = "10.11.11.11"
   hub1_nva_tun_range0  = "10.11.50.0/30"
   hub1_nva_tun_range1  = "10.11.51.4/30"
@@ -167,11 +171,13 @@ locals {
     ("ManagementSubnet")      = { cidr = "10.22.3.0/24", ipv6_cidr = "2000:abc:22:3::/64", ipv6_newbits = 8, ipv6_netnum = 3, az = "a", scope = "private", }
     ("AksSubnet")             = { cidr = "10.22.4.0/24", ipv6_cidr = "2000:abc:22:4::/64", ipv6_newbits = 8, ipv6_netnum = 4, az = "a", scope = "private", }
     ("TestSubnet")            = { cidr = "10.22.5.0/24", ipv6_cidr = "2000:abc:22:5::/64", ipv6_newbits = 8, ipv6_netnum = 5, az = "a", scope = "private", }
-    ("DnsInboundSubnet")      = { cidr = "10.22.6.0/24", ipv6_cidr = "2000:abc:22:6::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "a", scope = "private", }
-    ("DnsOutboundSubnet")     = { cidr = "10.22.7.0/24", ipv6_cidr = "2000:abc:22:7::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("PrivateEndpointSubnet") = { cidr = "10.22.8.0/24", ipv6_cidr = "2000:abc:22:8::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("AppGatewaySubnet")      = { cidr = "10.22.9.0/24", ipv6_cidr = "2000:abc:22:9::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
-    ("LoadBalancerSubnet")    = { cidr = "10.22.10.0/24", ipv6_cidr = "2000:abc:22:10::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("DnsInboundSubnet1")     = { cidr = "10.22.6.0/24", ipv6_cidr = "2000:abc:22:6::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "a", scope = "private", }
+    ("DnsInboundSubnet2")     = { cidr = "10.22.7.0/24", ipv6_cidr = "2000:abc:22:7::/64", ipv6_newbits = 8, ipv6_netnum = 6, az = "b", scope = "private", }
+    ("DnsOutboundSubnet1")    = { cidr = "10.22.8.0/24", ipv6_cidr = "2000:abc:22:8::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("DnsOutboundSubnet2")    = { cidr = "10.22.9.0/24", ipv6_cidr = "2000:abc:22:9::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
+    ("PrivateEndpointSubnet") = { cidr = "10.22.10.0/24", ipv6_cidr = "2000:abc:22:10::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("AppGatewaySubnet")      = { cidr = "10.22.11.0/24", ipv6_cidr = "2000:abc:22:11::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("LoadBalancerSubnet")    = { cidr = "10.22.12.0/24", ipv6_cidr = "2000:abc:22:12::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
   }
   hub2_default_gw_main      = cidrhost(local.hub2_subnets["MainSubnet"].cidr, 1)
   hub2_default_gw_untrust   = cidrhost(local.hub2_subnets["UntrustSubnet"].cidr, 1)
@@ -189,8 +195,10 @@ locals {
   hub2_nva_ilb_trust_addr_v6   = cidrhost(local.hub2_subnets["TrustSubnet"].ipv6_cidr, 153)
   hub2_nva_ilb_untrust_addr_v6 = cidrhost(local.hub2_subnets["UntrustSubnet"].ipv6_cidr, 153)
 
-  hub2_dns_in_addr     = cidrhost(local.hub2_subnets["DnsInboundSubnet"].cidr, 4)
-  hub2_dns_out_addr    = cidrhost(local.hub2_subnets["DnsOutboundSubnet"].cidr, 4)
+  hub2_dns_in_addr1    = cidrhost(local.hub2_subnets["DnsInboundSubnet1"].cidr, 4)
+  hub2_dns_in_addr2    = cidrhost(local.hub2_subnets["DnsInboundSubnet2"].cidr, 4)
+  hub2_dns_out_addr1   = cidrhost(local.hub2_subnets["DnsOutboundSubnet1"].cidr, 4)
+  hub2_dns_out_addr2   = cidrhost(local.hub2_subnets["DnsOutboundSubnet2"].cidr, 4)
   hub2_nva_loopback0   = "10.22.22.22"
   hub2_nva_tun_range0  = "10.22.50.0/30"
   hub2_nva_tun_range1  = "10.22.51.4/30"

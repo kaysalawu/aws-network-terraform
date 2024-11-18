@@ -84,11 +84,11 @@ cat <<'EOF' >/usr/local/bin/trace-ipv4
 echo -e "\n trace ipv4 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   name=$(echo $target | jq -r '.name')
-  ping=$(echo $target | jq -r '.ping // true')
-  if [[ "$ping" == "true" ]]; then
+  ipv4=$(echo $target | jq -r '.ipv4 // ""')
+  if [[ -n "$ipv4" ]]; then
     echo -e "\n$name"
     echo -e "-------------------------------------"
-    timeout 9 tracepath -4 $host
+    timeout 9 tracepath -4 $ipv4
   fi
 done
 EOF
@@ -151,9 +151,9 @@ resolvectl status
 EOF
 chmod a+x /usr/local/bin/dns-info
 
-# traffic generators (ipv4)
+# traffic gen (ipv4)
 
-## light-traffic generator
+## light
 cat <<'EOF' >/usr/local/bin/light-traffic
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do
   probe=$(echo $target | jq -r '.probe // false')
@@ -168,7 +168,7 @@ done
 EOF
 chmod a+x /usr/local/bin/light-traffic
 
-## heavy-traffic generator
+## heavy
 cat <<'EOF' >/usr/local/bin/heavy-traffic
 #!/bin/bash
 i=0
@@ -182,9 +182,9 @@ done
 EOF
 chmod a+x /usr/local/bin/heavy-traffic
 
-# traffic generators (ipv6)
+# traffic gen (ipv6)
 
-## light-traffic generator
+## light
 cat <<'EOF' >/usr/local/bin/light-traffic-ipv6
 echo -e "\n light traffic ipv6 ...\n"
 cat /usr/local/bin/targets.json | jq -c '.[]' | while IFS= read -r target; do

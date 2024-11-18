@@ -35,10 +35,15 @@ locals {
         vpc_peering_connection_id  = try(route.vpc_peering_connection_id, null)
     }]
   ])
-}
-
-output "test" {
-  value = local.routes
+  additional_associated_vpc_ids = flatten([
+    for rule in try(var.dns_resolver_config.0.rules, []) : [
+      for vpc_id in var.dns_resolver_config.0.additional_associated_vpc_ids : {
+        key    = "${rule.domain}--${vpc_id}"
+        vpc_id = vpc_id
+        domain = rule.domain
+      }
+    ]
+  ])
 }
 
 ####################################################
@@ -276,6 +281,82 @@ resource "aws_route53_zone_association" "this" {
 #     failure_threshold = 1
 #   }
 # }
+
+####################################################
+# dns resolver
+####################################################
+
+# inbound
+
+resource "aws_route53_resolver_endpoint" "inbound" {
+  count              = length(var.dns_resolver_config) > 0 ? 1 : 0
+  name               = "${local.prefix}inbound-ep"
+  direction          = "INBOUND"
+  security_group_ids = [aws_security_group.ec2_sg.id, ]
+
+  dynamic "ip_address" {
+    for_each = { for v in var.dns_resolver_config.0.inbound : v.subnet => v }
+    content {
+      subnet_id = aws_subnet.this[ip_address.value.subnet].id
+      ip        = ip_address.value.ip
+    }
+  }
+  tags = merge(var.tags,
+    { Name = "${local.prefix}inbound-ep" }
+  )
+}
+
+# outbound
+
+resource "aws_route53_resolver_endpoint" "outbound" {
+  count              = length(var.dns_resolver_config) > 0 ? 1 : 0
+  name               = "${local.prefix}outbound-ep"
+  direction          = "OUTBOUND"
+  security_group_ids = [aws_security_group.ec2_sg.id, ]
+
+  dynamic "ip_address" {
+    for_each = { for v in var.dns_resolver_config.0.outbound : v.subnet => v }
+    content {
+      subnet_id = aws_subnet.this[ip_address.value.subnet].id
+      ip        = ip_address.value.ip
+    }
+  }
+  tags = merge(var.tags,
+    { Name = "${local.prefix}outbound-ep" }
+  )
+}
+
+# forwarding rules
+
+resource "aws_route53_resolver_rule" "this" {
+  for_each             = { for v in try(var.dns_resolver_config.0.rules, []) : v.domain => v if length(var.dns_resolver_config) > 0 }
+  name                 = replace(each.value.domain, ".", "-")
+  domain_name          = each.value.domain
+  rule_type            = each.value.rule_type
+  resolver_endpoint_id = aws_route53_resolver_endpoint.outbound.0.id
+
+  dynamic "target_ip" {
+    for_each = each.value.target_ips
+    content {
+      ip = target_ip.value
+    }
+  }
+  tags = merge(var.tags,
+    { Name = each.value.domain }
+  )
+}
+
+resource "aws_route53_resolver_rule_association" "this" {
+  for_each         = { for v in try(var.dns_resolver_config.0.rules, []) : v.domain => v if length(var.dns_resolver_config) > 0 }
+  resolver_rule_id = aws_route53_resolver_rule.this[each.key].id
+  vpc_id           = aws_vpc.this.id
+}
+
+resource "aws_route53_resolver_rule_association" "additional" {
+  for_each         = { for v in local.additional_associated_vpc_ids : v.key => v if length(var.dns_resolver_config) > 0 }
+  resolver_rule_id = aws_route53_resolver_rule.this[each.value.domain].id
+  vpc_id           = each.value.vpc_id
+}
 
 ####################################################
 # bastion

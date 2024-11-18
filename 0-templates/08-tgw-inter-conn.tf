@@ -86,6 +86,14 @@ resource "aws_ec2_transit_gateway_route_table_association" "tgw2_tgw1_associatio
 # routes
 #---------------------------------------
 
+resource "time_sleep" "wait_for_tgws" {
+  create_duration = "60s"
+  depends_on = [
+    module.tgw1,
+    module.tgw2,
+  ]
+}
+
 # tgw1
 
 module "tgw1_routes" {
@@ -112,6 +120,9 @@ module "tgw1_routes" {
       attachment_id  = aws_ec2_transit_gateway_peering_attachment.tgw1_tgw2_peering.id
       ipv4_prefixes  = concat(local.hub2_cidr, local.spoke4_cidr, local.spoke5_cidr, local.branch3_cidr, )
     },
+  ]
+  depends_on = [
+    time_sleep.wait_for_tgws,
   ]
 }
 
@@ -141,5 +152,8 @@ module "tgw2_routes" {
       attachment_id  = aws_ec2_transit_gateway_peering_attachment_accepter.tgw2_tgw1_peering.id
       ipv4_prefixes  = concat(local.hub1_cidr, local.spoke1_cidr, local.spoke2_cidr, local.branch1_cidr, )
     },
+  ]
+  depends_on = [
+    time_sleep.wait_for_tgws,
   ]
 }

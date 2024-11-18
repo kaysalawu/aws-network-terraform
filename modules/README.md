@@ -1,4 +1,4 @@
 
 # Modules
 
-Collection of modules used to build Azure network topologies.
+Collection of modules used to build AWS network topologies.

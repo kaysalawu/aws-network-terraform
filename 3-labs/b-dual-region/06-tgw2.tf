@@ -23,39 +23,42 @@ module "tgw2" {
 
   vpc_attachments = [
     {
-      name        = module.hub2.vpc_name
-      route_table = "hub"
-      vpc_id      = module.hub2.vpc_id
-      subnet_ids  = [module.hub2.subnet_ids["ManagementSubnet"], ]
+      name       = module.hub2.vpc_name
+      vpc_id     = module.hub2.vpc_id
+      subnet_ids = [module.hub2.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
         { name = "private-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub2.route_table_ids["private"] },
         { name = "public-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub2.route_table_ids["public"] },
       ]
+      associated_route_table_name  = "hub"
+      propagated_route_table_names = ["vpc"]
     },
     {
-      name        = module.spoke4.vpc_name
-      route_table = "vpc"
-      vpc_id      = module.spoke4.vpc_id
-      subnet_ids  = [module.spoke4.subnet_ids["ManagementSubnet"], ]
+      name       = module.spoke4.vpc_name
+      vpc_id     = module.spoke4.vpc_id
+      subnet_ids = [module.spoke4.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
         { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke4.route_table_ids["private"] },
       ]
+      associated_route_table_name  = "vpc"
+      propagated_route_table_names = ["hub"]
     },
     {
-      name        = module.spoke5.vpc_name
-      route_table = "vpc"
-      vpc_id      = module.spoke5.vpc_id
-      subnet_ids  = [module.spoke5.subnet_ids["ManagementSubnet"], ]
+      name       = module.spoke5.vpc_name
+      vpc_id     = module.spoke5.vpc_id
+      subnet_ids = [module.spoke5.subnet_ids["ManagementSubnet"], ]
       vpc_routes = [
         { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke5.route_table_ids["private"] },
       ]
+      associated_route_table_name  = "vpc"
+      propagated_route_table_names = ["hub"]
     }
   ]
 
   transit_gateway_routes = [
     { name = "internet", route_table_name = "vpc", attachment_name = module.hub2.vpc_name, ipv4_prefixes = ["0.0.0.0/0"] },
-    { name = "spoke4", route_table_name = "hub", attachment_name = module.spoke4.vpc_name, ipv4_prefixes = local.spoke4_cidr },
-    { name = "spoke5", route_table_name = "hub", attachment_name = module.spoke5.vpc_name, ipv4_prefixes = local.spoke5_cidr },
+    # { name = "spoke4", route_table_name = "hub", attachment_name = module.spoke4.vpc_name, ipv4_prefixes = local.spoke4_cidr },
+    # { name = "spoke5", route_table_name = "hub", attachment_name = module.spoke5.vpc_name, ipv4_prefixes = local.spoke5_cidr },
   ]
 }
 

@@ -113,12 +113,17 @@ variable "vpc_attachments" {
   description = "A list of VPC attachments to create with the EC2 Transit Gateway"
   type = list(object({
     name                   = string
-    route_table            = optional(string, null)
+    id                     = optional(string, null) # used when modifying existing transit gateway
     subnet_ids             = list(string)
     vpc_id                 = string
     appliance_mode_support = optional(string, "disable")
     dns_support            = optional(string, "enable")
     ipv6_support           = optional(string, "disable")
+
+    associated_route_table_name  = optional(string, null)     # used when creating new transit gateway
+    associated_route_table_id    = optional(string, null)     # used when modifying existing transit gateway
+    propagated_route_table_names = optional(list(string), []) # used when creating new transsit gateway
+    propagated_route_table_ids   = optional(list(string), []) # used when modifying existing transit gateway
 
     security_group_referencing_support              = optional(string, "disable")
     transit_gateway_default_route_table_association = optional(bool, false)
@@ -136,7 +141,7 @@ variable "vpc_attachments" {
   validation {
     condition = alltrue([
       for attachment in var.vpc_attachments :
-      !(attachment.route_table != null &&
+      !(attachment.associated_route_table_name != null &&
       (attachment.transit_gateway_default_route_table_association || attachment.transit_gateway_default_route_table_propagation))
     ])
     error_message = "Validation failed: If 'route_table' is specified, both 'transit_gateway_default_route_table_association' and 'transit_gateway_default_route_table_propagation' must be set to false."

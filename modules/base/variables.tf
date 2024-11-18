@@ -250,3 +250,24 @@ variable "create_internet_gateway" {
   type        = bool
   default     = false
 }
+
+variable "dns_resolver_config" {
+  description = "DNS resolver configuration"
+  type = list(object({
+    inbound = list(object({
+      subnet = string
+      ip     = optional(string, null)
+    }))
+    outbound = list(object({
+      subnet = string
+      ip     = optional(string, null)
+    }))
+    rules = optional(list(object({
+      domain     = string
+      target_ips = list(string)
+      rule_type  = optional(string, "FORWARD")
+    })), [])
+    additional_associated_vpc_ids = optional(list(string), [])
+  }))
+  default = []
+}

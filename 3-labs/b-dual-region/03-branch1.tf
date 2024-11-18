@@ -83,8 +83,8 @@ locals {
     PASSWORD = local.password
   }
   branch1_forward_zones = [
-    { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr, ] },
-    { zone = "${local.region2_dns_zone}.", targets = [local.hub2_dns_in_addr, ] },
+    { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr1, ] },
+    { zone = "${local.region2_dns_zone}.", targets = [local.hub2_dns_in_addr1, ] },
     { zone = ".", targets = [local.amazon_dns_ipv4, ] },
   ]
 }
