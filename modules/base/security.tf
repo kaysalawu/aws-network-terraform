@@ -8,6 +8,7 @@ locals {
 ####################################################
 
 # TODO: use prefix lists for private prefixes
+# TODO: use new terraform resource dedicated to ingress and egress rules
 
 # bastion
 #--------------------------
