@@ -47,33 +47,12 @@ provider "aws" {
   secret_key = var.aws_secret_access_key
 }
 
-provider "aws" {
-  alias      = "region2"
-  region     = local.region2
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_access_key
-}
-
 ####################################################
 # data
 ####################################################
 
 data "aws_ami" "ubuntu_region1" {
   provider    = aws.region1
-  most_recent = true
-  owners      = ["099720109477"]
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-}
-
-data "aws_ami" "ubuntu_region2" {
-  provider    = aws.region2
   most_recent = true
   owners      = ["099720109477"]
   filter {
@@ -103,7 +82,6 @@ data "aws_caller_identity" "current" {
 locals {
   regions = {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
-    "region2" = { name = local.region2, dns_zone = local.region2_dns_zone }
   }
 }
 
@@ -117,18 +95,6 @@ module "common_region1" {
   env                   = "common"
   prefix                = var.prefix
   region                = local.region1
-  private_prefixes_ipv4 = local.private_prefixes_ipv4
-  private_prefixes_ipv6 = local.private_prefixes_ipv6
-  public_key_path       = var.public_key_path
-  tags                  = {}
-}
-
-module "common_region2" {
-  source                = "../../modules/common"
-  providers             = { aws = aws.region2 }
-  env                   = "common"
-  prefix                = var.prefix
-  region                = local.region2
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
   public_key_path       = var.public_key_path
@@ -157,19 +123,11 @@ locals {
     { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
     { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
   ]
-  vm_script_targets_region2 = [
-    { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
-    { name = "hub2   ", host = local.hub2_vm_fqdn, ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
-    # { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
-    { name = "spoke4 ", host = local.spoke4_vm_fqdn, ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
-    { name = "spoke5 ", host = local.spoke5_vm_fqdn, ipv4 = local.spoke5_vm_addr, ipv6 = local.spoke5_vm_addr_v6, probe = true },
-  ]
   vm_script_targets_misc = [
     { name = "internet", host = "icanhazip.com" },
   ]
   vm_script_targets = concat(
     local.vm_script_targets_region1,
-    local.vm_script_targets_region2,
     local.vm_script_targets_misc,
   )
   vm_startup = templatefile("../../scripts/server.sh", {
@@ -265,16 +223,6 @@ resource "aws_eip" "branch1_nva_untrust" {
   domain   = "vpc"
   tags = {
     Name = "${local.branch1_prefix}nva-untrust"
-  }
-}
-
-# branch3
-
-resource "aws_eip" "branch3_nva_untrust" {
-  provider = aws.region2
-  domain   = "vpc"
-  tags = {
-    Name = "${local.branch3_prefix}nva-untrust"
   }
 }
 

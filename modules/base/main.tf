@@ -353,9 +353,9 @@ resource "aws_route53_resolver_rule_association" "this" {
 }
 
 resource "aws_route53_resolver_rule_association" "additional" {
-  for_each         = { for v in local.additional_associated_vpc_ids : v.key => v if length(var.dns_resolver_config) > 0 }
-  resolver_rule_id = aws_route53_resolver_rule.this[each.value.domain].id
-  vpc_id           = each.value.vpc_id
+  count            = length(local.additional_associated_vpc_ids)
+  resolver_rule_id = aws_route53_resolver_rule.this[local.additional_associated_vpc_ids[count.index].domain].id
+  vpc_id           = local.additional_associated_vpc_ids[count.index].vpc_id
 }
 
 ####################################################
