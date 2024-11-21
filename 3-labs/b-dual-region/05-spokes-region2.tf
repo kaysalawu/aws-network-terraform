@@ -60,7 +60,7 @@ module "spoke4_vm" {
   interfaces = [
     {
       name               = "${local.spoke4_prefix}vm-main"
-      subnet_id          = module.spoke4.subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke4.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke4_vm_addr, ]
       security_group_ids = [module.spoke4.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke4_vm_hostname }
@@ -132,7 +132,7 @@ module "spoke5_vm" {
   interfaces = [
     {
       name               = "${local.spoke5_prefix}vm-main"
-      subnet_id          = module.spoke5.subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke5.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke5_vm_addr, ]
       security_group_ids = [module.spoke5.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke5_vm_hostname }
@@ -167,14 +167,12 @@ module "spoke6" {
 
   subnets = local.spoke6_subnets
 
-  create_internet_gateway = true
-
   private_dns_config = {
     zone_name = aws_route53_zone.region2.name
   }
 
   nat_config = [
-    { scope = "public", subnet = "UntrustSubnet", },
+    { scope = "public", subnet = "UntrustSubnetA", },
   ]
 
   route_table_config = [
@@ -182,7 +180,7 @@ module "spoke6" {
       scope   = "private"
       subnets = [for k, v in local.spoke6_subnets : k if v.scope == "private"]
       routes = [
-        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnetA" },
       ]
     },
     {
@@ -224,7 +222,7 @@ module "spoke6_vm" {
   interfaces = [
     {
       name               = "${local.spoke6_prefix}vm-main"
-      subnet_id          = module.spoke6.subnet_ids["MainSubnet"]
+      subnet_id          = module.spoke6.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke6_vm_addr, ]
       security_group_ids = [module.spoke6.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke6_vm_hostname }

@@ -50,7 +50,7 @@ locals {
       { prefix = "0.0.0.0/0", next_hop = local.branch3_untrust_default_gw },
       { prefix = "${local.tgw2_branch3_vpn_tun1_inside_addr}/32", next_hop = "tun1" },
       { prefix = "${local.tgw2_branch3_vpn_tun2_inside_addr}/32", next_hop = "tun2" },
-      { prefix = local.branch3_subnets["MainSubnet"].cidr, next_hop = local.branch3_untrust_default_gw },
+      { prefix = local.branch3_subnets["MainSubnetA"].cidr, next_hop = local.branch3_untrust_default_gw },
     ]
     TUNNELS = [
       {
@@ -91,7 +91,7 @@ locals {
       },
     ]
     BGP_ADVERTISED_PREFIXES_IPV4 = [
-      local.branch3_subnets["MainSubnet"].cidr,
+      local.branch3_subnets["MainSubnetA"].cidr,
     ]
   }
   branch3_nva_init = templatefile("../../scripts/linux-nva.sh", merge(local.branch3_nva_vars, {
@@ -126,7 +126,7 @@ module "branch3_nva" {
   interfaces = [
     {
       name               = "${local.branch3_prefix}nva-untrust"
-      subnet_id          = module.branch3.subnet_ids["UntrustSubnet"]
+      subnet_id          = module.branch3.subnet_ids["UntrustSubnetA"]
       private_ips        = [local.branch3_nva_untrust_addr, ]
       security_group_ids = [module.branch3.nva_security_group_id, ]
       eip_tag_name       = "${local.branch3_prefix}nva-untrust"
@@ -134,7 +134,7 @@ module "branch3_nva" {
     },
     {
       name               = "${local.branch3_prefix}nva-trust"
-      subnet_id          = module.branch3.subnet_ids["TrustSubnet"]
+      subnet_id          = module.branch3.subnet_ids["TrustSubnetA"]
       private_ips        = [local.branch3_nva_trust_addr, ]
       security_group_ids = [module.branch3.ec2_security_group_id, ]
       source_dest_check  = false

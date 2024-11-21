@@ -1,4 +1,6 @@
+
 data "aws_partition" "current" {}
+data "aws_elb_service_account" "current" {}
 
 locals {
   tags = merge(var.tags, { terraform-aws-modules = "alb" })
@@ -9,12 +11,35 @@ locals {
 ################################################################################
 
 resource "aws_lb" "this" {
+  client_keep_alive                = var.client_keep_alive
+  customer_owned_ipv4_pool         = var.customer_owned_ipv4_pool
+  desync_mitigation_mode           = var.desync_mitigation_mode
+  dns_record_client_routing_policy = var.dns_record_client_routing_policy
+  drop_invalid_header_fields       = var.drop_invalid_header_fields
+  enable_cross_zone_load_balancing = var.enable_cross_zone_load_balancing
+  enable_deletion_protection       = var.enable_deletion_protection
+  enable_http2                     = var.enable_http2
+  enable_xff_client_port           = var.enable_xff_client_port
+  enable_waf_fail_open             = var.enable_waf_fail_open
+  enable_zonal_shift               = var.enable_zonal_shift
+  idle_timeout                     = var.idle_timeout
+  internal                         = var.internal
+  ip_address_type                  = var.ip_address_type
+  load_balancer_type               = var.load_balancer_type
+  name                             = var.name
+  name_prefix                      = var.name_prefix
+  security_groups                  = var.security_groups
+  preserve_host_header             = var.preserve_host_header
+
+  enable_tls_version_and_cipher_suite_headers                  = var.enable_tls_version_and_cipher_suite_headers
+  enforce_security_group_inbound_rules_on_private_link_traffic = var.enforce_security_group_inbound_rules_on_private_link_traffic
+
   dynamic "access_logs" {
-    for_each = { for v in var.access_logs : v.bucket => v if v.enabled }
+    for_each = length(var.access_logs) > 0 ? [var.access_logs] : []
     content {
       bucket  = access_logs.value.bucket
-      enabled = access_logs.value.enabled
-      prefix  = access_logs.value.prefix
+      enabled = try(access_logs.value.enabled, null)
+      prefix  = try(access_logs.value.prefix, null)
     }
   }
 
@@ -22,32 +47,10 @@ resource "aws_lb" "this" {
     for_each = length(var.connection_logs) > 0 ? [var.connection_logs] : []
     content {
       bucket  = connection_logs.value.bucket
-      enabled = try(connection_logs.value.enabled, true)
-      prefix  = try(connection_logs.value.prefix, null)
+      enabled = try(connection_logs.value.enabled, false)
+      prefix  = try(connection_logs.value.prefix, "")
     }
   }
-
-  client_keep_alive                                            = var.client_keep_alive
-  customer_owned_ipv4_pool                                     = var.customer_owned_ipv4_pool
-  desync_mitigation_mode                                       = var.desync_mitigation_mode
-  dns_record_client_routing_policy                             = var.dns_record_client_routing_policy
-  drop_invalid_header_fields                                   = var.drop_invalid_header_fields
-  enable_cross_zone_load_balancing                             = var.enable_cross_zone_load_balancing
-  enable_deletion_protection                                   = var.enable_deletion_protection
-  enable_http2                                                 = var.enable_http2
-  enable_tls_version_and_cipher_suite_headers                  = var.enable_tls_version_and_cipher_suite_headers
-  enable_waf_fail_open                                         = var.enable_waf_fail_open
-  enable_xff_client_port                                       = var.enable_xff_client_port
-  enable_zonal_shift                                           = var.enable_zonal_shift
-  enforce_security_group_inbound_rules_on_private_link_traffic = var.enforce_security_group_inbound_rules_on_private_link_traffic
-  idle_timeout                                                 = var.idle_timeout
-  internal                                                     = var.internal
-  ip_address_type                                              = var.ip_address_type
-  load_balancer_type                                           = var.load_balancer_type
-  name                                                         = var.name
-  name_prefix                                                  = var.name_prefix
-  preserve_host_header                                         = var.preserve_host_header
-  security_groups                                              = var.security_groups
 
   dynamic "subnet_mapping" {
     for_each = var.subnet_mapping
@@ -76,61 +79,57 @@ resource "aws_lb" "this" {
   }
 }
 
-################################################################################
-# Listener(s)
-################################################################################
-
 resource "aws_lb_listener" "this" {
-  for_each        = var.listeners
-  alpn_policy     = try(each.value.alpn_policy, null)
-  certificate_arn = try(each.value.certificate_arn, null)
+  for_each = { for v in var.listeners : v.name => v }
+
+  alpn_policy              = try(each.value.alpn_policy, null)
+  certificate_arn          = try(each.value.certificate_arn, null)
+  port                     = each.value.port
+  protocol                 = each.value.protocol
+  load_balancer_arn        = aws_lb.this.arn
+  ssl_policy               = try(each.value.ssl_policy, null)
+  tcp_idle_timeout_seconds = try(each.value.tcp_idle_timeout_seconds, null)
+  tags                     = merge(local.tags, try(each.value.tags, {}))
 
   dynamic "default_action" {
-    for_each = try([each.value.authenticate_cognito], [])
-
+    for_each = try(each.value.authenticate_cognito.default ? [each.value.authenticate_cognito] : [], [])
     content {
+      order = try(default_action.value.order, null)
+      type  = "authenticate-cognito"
       authenticate_cognito {
+        user_pool_arn                       = default_action.value.user_pool_arn
+        user_pool_client_id                 = default_action.value.user_pool_client_id
+        user_pool_domain                    = default_action.value.user_pool_domain
         authentication_request_extra_params = try(default_action.value.authentication_request_extra_params, null)
         on_unauthenticated_request          = try(default_action.value.on_unauthenticated_request, null)
         scope                               = try(default_action.value.scope, null)
         session_cookie_name                 = try(default_action.value.session_cookie_name, null)
         session_timeout                     = try(default_action.value.session_timeout, null)
-        user_pool_arn                       = default_action.value.user_pool_arn
-        user_pool_client_id                 = default_action.value.user_pool_client_id
-        user_pool_domain                    = default_action.value.user_pool_domain
       }
-
-      order = try(default_action.value.order, null)
-      type  = "authenticate-cognito"
     }
   }
-
   dynamic "default_action" {
-    for_each = try([each.value.authenticate_oidc], [])
-
+    for_each = try(each.value.authenticate_oidc.default ? [each.value.authenticate_oidc] : [], [])
     content {
+      order = try(default_action.value.order, null)
+      type  = "authenticate-oidc"
       authenticate_oidc {
-        authentication_request_extra_params = try(default_action.value.authentication_request_extra_params, null)
         authorization_endpoint              = default_action.value.authorization_endpoint
         client_id                           = default_action.value.client_id
         client_secret                       = default_action.value.client_secret
         issuer                              = default_action.value.issuer
+        token_endpoint                      = default_action.value.token_endpoint
+        user_info_endpoint                  = default_action.value.user_info_endpoint
+        authentication_request_extra_params = try(default_action.value.authentication_request_extra_params, null)
         on_unauthenticated_request          = try(default_action.value.on_unauthenticated_request, null)
         scope                               = try(default_action.value.scope, null)
         session_cookie_name                 = try(default_action.value.session_cookie_name, null)
         session_timeout                     = try(default_action.value.session_timeout, null)
-        token_endpoint                      = default_action.value.token_endpoint
-        user_info_endpoint                  = default_action.value.user_info_endpoint
       }
-
-      order = try(default_action.value.order, null)
-      type  = "authenticate-oidc"
     }
   }
-
   dynamic "default_action" {
-    for_each = try([each.value.fixed_response], [])
-
+    for_each = try(each.value.fixed_response.default ? [each.value.fixed_response] : [], [])
     content {
       fixed_response {
         content_type = default_action.value.content_type
@@ -142,80 +141,70 @@ resource "aws_lb_listener" "this" {
       type  = "fixed-response"
     }
   }
-
   dynamic "default_action" {
-    for_each = try([each.value.forward], [])
-
+    for_each = try(each.value.forward.default ? [each.value.forward] : [], [])
     content {
-      order            = try(default_action.value.order, null)
-      target_group_arn = length(try(default_action.value.target_groups, [])) > 0 ? null : try(default_action.value.arn, aws_lb_target_group.this[default_action.value.target_group_key].arn, null)
       type             = "forward"
+      order            = try(default_action.value.order, null)
+      target_group_arn = try(aws_lb_target_group.this[default_action.value.target_group].arn, null)
     }
   }
 
-  dynamic "default_action" {
-    for_each = try([each.value.weighted_forward], [])
+  #   dynamic "default_action" {
+  #     for_each = try([each.value.weighted_forward], [])
 
-    content {
-      forward {
-        dynamic "target_group" {
-          for_each = try(default_action.value.target_groups, [])
+  #     content {
+  #       forward {
+  #         dynamic "target_group" {
+  #           for_each = try(default_action.value.target_groups, [])
 
-          content {
-            arn    = try(target_group.value.arn, aws_lb_target_group.this[target_group.value.target_group_key].arn, null)
-            weight = try(target_group.value.weight, null)
-          }
-        }
+  #           content {
+  #             arn    = try(target_group.value.arn, aws_lb_target_group.this[target_group.value.target_group_key].arn, null)
+  #             weight = try(target_group.value.weight, null)
+  #           }
+  #         }
 
-        dynamic "stickiness" {
-          for_each = try([default_action.value.stickiness], [])
+  #         dynamic "stickiness" {
+  #           for_each = try([default_action.value.stickiness], [])
+  #           content {
+  #             duration = try(stickiness.value.duration, 60)
+  #             enabled  = try(stickiness.value.enabled, null)
+  #           }
+  #         }
+  #       }
 
-          content {
-            duration = try(stickiness.value.duration, 60)
-            enabled  = try(stickiness.value.enabled, null)
-          }
-        }
-      }
+  #       order = try(default_action.value.order, null)
+  #       type  = "forward"
+  #     }
+  #   }
 
-      order = try(default_action.value.order, null)
-      type  = "forward"
-    }
-  }
+  #   dynamic "default_action" {
+  #     for_each = try([each.value.redirect], [])
 
-  dynamic "default_action" {
-    for_each = try([each.value.redirect], [])
+  #     content {
+  #       order = try(default_action.value.order, null)
 
-    content {
-      order = try(default_action.value.order, null)
+  #       redirect {
+  #         host        = try(default_action.value.host, null)
+  #         path        = try(default_action.value.path, null)
+  #         port        = try(default_action.value.port, null)
+  #         protocol    = try(default_action.value.protocol, null)
+  #         query       = try(default_action.value.query, null)
+  #         status_code = default_action.value.status_code
+  #       }
 
-      redirect {
-        host        = try(default_action.value.host, null)
-        path        = try(default_action.value.path, null)
-        port        = try(default_action.value.port, null)
-        protocol    = try(default_action.value.protocol, null)
-        query       = try(default_action.value.query, null)
-        status_code = default_action.value.status_code
-      }
-
-      type = "redirect"
-    }
-  }
+  #       type = "redirect"
+  #     }
+  #   }
 
   dynamic "mutual_authentication" {
-    for_each = try([each.value.mutual_authentication], [])
+    for_each = { for v in try([each.value.mutual_authentication.0], []) : v.mode => v if v.mode != null }
     content {
       mode                             = mutual_authentication.value.mode
       trust_store_arn                  = try(mutual_authentication.value.trust_store_arn, null)
       ignore_client_certificate_expiry = try(mutual_authentication.value.ignore_client_certificate_expiry, null)
     }
   }
-
-  load_balancer_arn        = aws_lb.this.arn
-  port                     = try(each.value.port, var.default_port)
-  protocol                 = try(each.value.protocol, var.default_protocol)
-  ssl_policy               = contains(["HTTPS", "TLS"], try(each.value.protocol, var.default_protocol)) ? try(each.value.ssl_policy, "ELBSecurityPolicy-TLS13-1-2-Res-2021-06") : try(each.value.ssl_policy, null)
-  tcp_idle_timeout_seconds = try(each.value.tcp_idle_timeout_seconds, null)
-  tags                     = merge(local.tags, try(each.value.tags, {}))
 }
 
 ################################################################################
@@ -235,216 +224,216 @@ locals {
   ])
 }
 
-resource "aws_lb_listener_rule" "this" {
-  for_each = { for v in local.listener_rules : "${v.listener_key}/${v.rule_key}" => v }
+# resource "aws_lb_listener_rule" "this" {
+#   for_each = { for v in local.listener_rules : "${v.listener_key}/${v.rule_key}" => v }
 
-  listener_arn = try(each.value.listener_arn, aws_lb_listener.this[each.value.listener_key].arn)
-  priority     = try(each.value.priority, null)
+#   listener_arn = try(each.value.listener_arn, aws_lb_listener.this[each.value.listener_key].arn)
+#   priority     = try(each.value.priority, null)
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "authenticate-cognito"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "authenticate-cognito"]
 
-    content {
-      type  = "authenticate-cognito"
-      order = try(action.value.order, null)
+#     content {
+#       type  = "authenticate-cognito"
+#       order = try(action.value.order, null)
 
-      authenticate_cognito {
-        authentication_request_extra_params = try(action.value.authentication_request_extra_params, null)
-        on_unauthenticated_request          = try(action.value.on_unauthenticated_request, null)
-        scope                               = try(action.value.scope, null)
-        session_cookie_name                 = try(action.value.session_cookie_name, null)
-        session_timeout                     = try(action.value.session_timeout, null)
-        user_pool_arn                       = action.value.user_pool_arn
-        user_pool_client_id                 = action.value.user_pool_client_id
-        user_pool_domain                    = action.value.user_pool_domain
-      }
-    }
-  }
+#       authenticate_cognito {
+#         authentication_request_extra_params = try(action.value.authentication_request_extra_params, null)
+#         on_unauthenticated_request          = try(action.value.on_unauthenticated_request, null)
+#         scope                               = try(action.value.scope, null)
+#         session_cookie_name                 = try(action.value.session_cookie_name, null)
+#         session_timeout                     = try(action.value.session_timeout, null)
+#         user_pool_arn                       = action.value.user_pool_arn
+#         user_pool_client_id                 = action.value.user_pool_client_id
+#         user_pool_domain                    = action.value.user_pool_domain
+#       }
+#     }
+#   }
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "authenticate-oidc"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "authenticate-oidc"]
 
-    content {
-      type  = "authenticate-oidc"
-      order = try(action.value.order, null)
+#     content {
+#       type  = "authenticate-oidc"
+#       order = try(action.value.order, null)
 
-      authenticate_oidc {
-        authentication_request_extra_params = try(action.value.authentication_request_extra_params, null)
-        authorization_endpoint              = action.value.authorization_endpoint
-        client_id                           = action.value.client_id
-        client_secret                       = action.value.client_secret
-        issuer                              = action.value.issuer
-        on_unauthenticated_request          = try(action.value.on_unauthenticated_request, null)
-        scope                               = try(action.value.scope, null)
-        session_cookie_name                 = try(action.value.session_cookie_name, null)
-        session_timeout                     = try(action.value.session_timeout, null)
-        token_endpoint                      = action.value.token_endpoint
-        user_info_endpoint                  = action.value.user_info_endpoint
-      }
-    }
-  }
+#       authenticate_oidc {
+#         authentication_request_extra_params = try(action.value.authentication_request_extra_params, null)
+#         authorization_endpoint              = action.value.authorization_endpoint
+#         client_id                           = action.value.client_id
+#         client_secret                       = action.value.client_secret
+#         issuer                              = action.value.issuer
+#         on_unauthenticated_request          = try(action.value.on_unauthenticated_request, null)
+#         scope                               = try(action.value.scope, null)
+#         session_cookie_name                 = try(action.value.session_cookie_name, null)
+#         session_timeout                     = try(action.value.session_timeout, null)
+#         token_endpoint                      = action.value.token_endpoint
+#         user_info_endpoint                  = action.value.user_info_endpoint
+#       }
+#     }
+#   }
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "redirect"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "redirect"]
 
-    content {
-      type  = "redirect"
-      order = try(action.value.order, null)
+#     content {
+#       type  = "redirect"
+#       order = try(action.value.order, null)
 
-      redirect {
-        host        = try(action.value.host, null)
-        path        = try(action.value.path, null)
-        port        = try(action.value.port, null)
-        protocol    = try(action.value.protocol, null)
-        query       = try(action.value.query, null)
-        status_code = action.value.status_code
-      }
-    }
-  }
+#       redirect {
+#         host        = try(action.value.host, null)
+#         path        = try(action.value.path, null)
+#         port        = try(action.value.port, null)
+#         protocol    = try(action.value.protocol, null)
+#         query       = try(action.value.query, null)
+#         status_code = action.value.status_code
+#       }
+#     }
+#   }
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "fixed-response"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "fixed-response"]
 
-    content {
-      type  = "fixed-response"
-      order = try(action.value.order, null)
+#     content {
+#       type  = "fixed-response"
+#       order = try(action.value.order, null)
 
-      fixed_response {
-        content_type = action.value.content_type
-        message_body = try(action.value.message_body, null)
-        status_code  = try(action.value.status_code, null)
-      }
-    }
-  }
+#       fixed_response {
+#         content_type = action.value.content_type
+#         message_body = try(action.value.message_body, null)
+#         status_code  = try(action.value.status_code, null)
+#       }
+#     }
+#   }
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "forward"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "forward"]
 
-    content {
-      type             = "forward"
-      order            = try(action.value.order, null)
-      target_group_arn = try(action.value.target_group_arn, aws_lb_target_group.this[action.value.target_group_key].arn, null)
-    }
-  }
+#     content {
+#       type             = "forward"
+#       order            = try(action.value.order, null)
+#       target_group_arn = try(action.value.target_group_arn, aws_lb_target_group.this[action.value.target_group_key].arn, null)
+#     }
+#   }
 
-  dynamic "action" {
-    for_each = [for action in each.value.actions : action if action.type == "weighted-forward"]
+#   dynamic "action" {
+#     for_each = [for action in each.value.actions : action if action.type == "weighted-forward"]
 
-    content {
-      type  = "forward"
-      order = try(action.value.order, null)
+#     content {
+#       type  = "forward"
+#       order = try(action.value.order, null)
 
-      forward {
-        dynamic "target_group" {
-          for_each = try(action.value.target_groups, [])
+#       forward {
+#         dynamic "target_group" {
+#           for_each = try(action.value.target_groups, [])
 
-          content {
-            arn    = try(target_group.value.arn, aws_lb_target_group.this[target_group.value.target_group_key].arn)
-            weight = try(target_group.value.weight, null)
-          }
-        }
+#           content {
+#             arn    = try(target_group.value.arn, aws_lb_target_group.this[target_group.value.target_group_key].arn)
+#             weight = try(target_group.value.weight, null)
+#           }
+#         }
 
-        dynamic "stickiness" {
-          for_each = try([action.value.stickiness], [])
+#         dynamic "stickiness" {
+#           for_each = try([action.value.stickiness], [])
 
-          content {
-            enabled  = try(stickiness.value.enabled, null)
-            duration = try(stickiness.value.duration, 60)
-          }
-        }
-      }
-    }
-  }
+#           content {
+#             enabled  = try(stickiness.value.enabled, null)
+#             duration = try(stickiness.value.duration, 60)
+#           }
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "host_header")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "host_header")]
 
-    content {
-      dynamic "host_header" {
-        for_each = try([condition.value.host_header], [])
+#     content {
+#       dynamic "host_header" {
+#         for_each = try([condition.value.host_header], [])
 
-        content {
-          values = host_header.value.values
-        }
-      }
-    }
-  }
+#         content {
+#           values = host_header.value.values
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "http_header")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "http_header")]
 
-    content {
-      dynamic "http_header" {
-        for_each = try([condition.value.http_header], [])
+#     content {
+#       dynamic "http_header" {
+#         for_each = try([condition.value.http_header], [])
 
-        content {
-          http_header_name = http_header.value.http_header_name
-          values           = http_header.value.values
-        }
-      }
-    }
-  }
+#         content {
+#           http_header_name = http_header.value.http_header_name
+#           values           = http_header.value.values
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "http_request_method")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "http_request_method")]
 
-    content {
-      dynamic "http_request_method" {
-        for_each = try([condition.value.http_request_method], [])
+#     content {
+#       dynamic "http_request_method" {
+#         for_each = try([condition.value.http_request_method], [])
 
-        content {
-          values = http_request_method.value.values
-        }
-      }
-    }
-  }
+#         content {
+#           values = http_request_method.value.values
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "path_pattern")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "path_pattern")]
 
-    content {
-      dynamic "path_pattern" {
-        for_each = try([condition.value.path_pattern], [])
+#     content {
+#       dynamic "path_pattern" {
+#         for_each = try([condition.value.path_pattern], [])
 
-        content {
-          values = path_pattern.value.values
-        }
-      }
-    }
-  }
+#         content {
+#           values = path_pattern.value.values
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "query_string")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "query_string")]
 
-    content {
-      dynamic "query_string" {
-        for_each = try(flatten([condition.value.query_string]), [])
+#     content {
+#       dynamic "query_string" {
+#         for_each = try(flatten([condition.value.query_string]), [])
 
-        content {
-          key   = try(query_string.value.key, null)
-          value = query_string.value.value
-        }
-      }
-    }
-  }
+#         content {
+#           key   = try(query_string.value.key, null)
+#           value = query_string.value.value
+#         }
+#       }
+#     }
+#   }
 
-  dynamic "condition" {
-    for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "source_ip")]
+#   dynamic "condition" {
+#     for_each = [for condition in each.value.conditions : condition if contains(keys(condition), "source_ip")]
 
-    content {
-      dynamic "source_ip" {
-        for_each = try([condition.value.source_ip], [])
+#     content {
+#       dynamic "source_ip" {
+#         for_each = try([condition.value.source_ip], [])
 
-        content {
-          values = source_ip.value.values
-        }
-      }
-    }
-  }
+#         content {
+#           values = source_ip.value.values
+#         }
+#       }
+#     }
+#   }
 
-  tags = merge(local.tags, try(each.value.tags, {}))
-}
-
+#   tags = merge(local.tags, try(each.value.tags, {}))
+# }
+/*
 ################################################################################
 # Certificate(s)
 ################################################################################
@@ -474,51 +463,52 @@ resource "aws_lb_listener_certificate" "this" {
 
   listener_arn    = aws_lb_listener.this[each.value.listener_key].arn
   certificate_arn = each.value.certificate_arn
-}
+}*/
 
 ################################################################################
 # Target Group(s)
 ################################################################################
 
 resource "aws_lb_target_group" "this" {
-  for_each = var.target_groups
+  for_each = { for v in var.target_groups : v.name => v }
 
-  connection_termination = try(each.value.connection_termination, null)
-  deregistration_delay   = try(each.value.deregistration_delay, null)
+  name                               = each.value.name
+  name_prefix                        = each.value.name_prefix
+  connection_termination             = each.value.connection_termination
+  deregistration_delay               = each.value.deregistration_delay
+  lambda_multi_value_headers_enabled = each.value.lambda_multi_value_headers_enabled
+  load_balancing_algorithm_type      = each.value.load_balancing_algorithm_type
+  load_balancing_anomaly_mitigation  = each.value.load_balancing_anomaly_mitigation
+  load_balancing_cross_zone_enabled  = each.value.load_balancing_cross_zone_enabled
+  port                               = each.value.port
+  preserve_client_ip                 = each.value.preserve_client_ip
+  protocol_version                   = each.value.protocol_version
+  protocol                           = each.value.protocol
+  proxy_protocol_v2                  = each.value.proxy_protocol_v2
+  slow_start                         = each.value.slow_start
+  target_type                        = each.value.target.type
+  ip_address_type                    = each.value.ip_address_type
+  vpc_id                             = each.value.vpc_id
+
+  tags = merge(local.tags, try(each.value.tags, {}))
 
   dynamic "health_check" {
     for_each = try([each.value.health_check], [])
-
     content {
-      enabled             = try(health_check.value.enabled, null)
-      healthy_threshold   = try(health_check.value.healthy_threshold, null)
-      interval            = try(health_check.value.interval, null)
-      matcher             = try(health_check.value.matcher, null)
-      path                = try(health_check.value.path, null)
-      port                = try(health_check.value.port, null)
-      protocol            = try(health_check.value.protocol, null)
-      timeout             = try(health_check.value.timeout, null)
-      unhealthy_threshold = try(health_check.value.unhealthy_threshold, null)
+      enabled             = health_check.value.enabled
+      interval            = health_check.value.interval
+      matcher             = health_check.value.matcher
+      path                = health_check.value.path
+      port                = health_check.value.port
+      protocol            = health_check.value.protocol
+      timeout             = health_check.value.timeout
+      healthy_threshold   = health_check.value.healthy_threshold
+      unhealthy_threshold = health_check.value.unhealthy_threshold
     }
   }
 
-  ip_address_type                    = try(each.value.ip_address_type, null)
-  lambda_multi_value_headers_enabled = try(each.value.lambda_multi_value_headers_enabled, null)
-  load_balancing_algorithm_type      = try(each.value.load_balancing_algorithm_type, null)
-  load_balancing_anomaly_mitigation  = try(each.value.load_balancing_anomaly_mitigation, null)
-  load_balancing_cross_zone_enabled  = try(each.value.load_balancing_cross_zone_enabled, null)
-  name                               = try(each.value.name, null)
-  name_prefix                        = try(each.value.name_prefix, null)
-  port                               = try(each.value.target_type, null) == "lambda" ? null : try(each.value.port, var.default_port)
-  preserve_client_ip                 = try(each.value.preserve_client_ip, null)
-  protocol                           = try(each.value.target_type, null) == "lambda" ? null : try(each.value.protocol, var.default_protocol)
-  protocol_version                   = try(each.value.protocol_version, null)
-  proxy_protocol_v2                  = try(each.value.proxy_protocol_v2, null)
-  slow_start                         = try(each.value.slow_start, null)
-
   dynamic "stickiness" {
     for_each = try([each.value.stickiness], [])
-
     content {
       cookie_duration = try(stickiness.value.cookie_duration, null)
       cookie_name     = try(stickiness.value.cookie_name, null)
@@ -528,36 +518,10 @@ resource "aws_lb_target_group" "this" {
   }
 
   dynamic "target_failover" {
-    for_each = try(each.value.target_failover, [])
-
+    for_each = try([each.value.target_failover], [])
     content {
-      on_deregistration = target_failover.value.on_deregistration
-      on_unhealthy      = target_failover.value.on_unhealthy
-    }
-  }
-
-  dynamic "target_group_health" {
-    for_each = try([each.value.target_group_health], [])
-
-    content {
-
-      dynamic "dns_failover" {
-        for_each = try([target_group_health.value.dns_failover], [])
-
-        content {
-          minimum_healthy_targets_count      = try(dns_failover.value.minimum_healthy_targets_count, null)
-          minimum_healthy_targets_percentage = try(dns_failover.value.minimum_healthy_targets_percentage, null)
-        }
-      }
-
-      dynamic "unhealthy_state_routing" {
-        for_each = try([target_group_health.value.unhealthy_state_routing], [])
-
-        content {
-          minimum_healthy_targets_count      = try(unhealthy_state_routing.value.minimum_healthy_targets_count, null)
-          minimum_healthy_targets_percentage = try(unhealthy_state_routing.value.minimum_healthy_targets_percentage, null)
-        }
-      }
+      on_deregistration = try(target_failover.value.on_deregistration, null)
+      on_unhealthy      = try(target_failover.value.on_unhealthy, null)
     }
   }
 
@@ -569,13 +533,32 @@ resource "aws_lb_target_group" "this" {
     }
   }
 
-  target_type = try(each.value.target_type, null)
-  vpc_id      = try(each.value.vpc_id, var.vpc_id)
+  dynamic "target_group_health" {
+    for_each = try([each.value.target_group_health], [])
+    content {
+      dynamic "dns_failover" {
+        for_each = try([target_group_health.value.dns_failover], [])
+        content {
+          minimum_healthy_targets_count      = try(dns_failover.value.minimum_healthy_targets_count, null)
+          minimum_healthy_targets_percentage = try(dns_failover.value.minimum_healthy_targets_percentage, null)
+        }
+      }
+      dynamic "unhealthy_state_routing" {
+        for_each = try([target_group_health.value.unhealthy_state_routing], [])
 
-  tags = merge(local.tags, try(each.value.tags, {}))
+        content {
+          minimum_healthy_targets_count      = try(unhealthy_state_routing.value.minimum_healthy_targets_count, null)
+          minimum_healthy_targets_percentage = try(unhealthy_state_routing.value.minimum_healthy_targets_percentage, null)
+        }
+      }
+    }
+  }
 
   lifecycle {
     create_before_destroy = true
+    ignore_changes = [
+      target_failover,
+    ]
   }
 }
 
@@ -584,26 +567,13 @@ resource "aws_lb_target_group" "this" {
 ################################################################################
 
 resource "aws_lb_target_group_attachment" "this" {
-  for_each = { for k, v in var.target_groups : k => v if lookup(v, "create_attachment", true) }
-
+  for_each          = { for v in var.target_groups : v.name => v }
   target_group_arn  = aws_lb_target_group.this[each.key].arn
-  target_id         = each.value.target_id
-  port              = try(each.value.target_type, null) == "lambda" ? null : try(each.value.port, var.default_port)
-  availability_zone = try(each.value.availability_zone, null)
-
-  depends_on = [aws_lambda_permission.this]
+  target_id         = each.value.target.id
+  port              = each.value.target.port
+  availability_zone = each.value.target.availability_zone
 }
 
-resource "aws_lb_target_group_attachment" "additional" {
-  for_each = var.additional_target_group_attachments
-
-  target_group_arn  = aws_lb_target_group.this[each.value.target_group_key].arn
-  target_id         = each.value.target_id
-  port              = try(each.value.target_type, null) == "lambda" ? null : try(each.value.port, var.default_port)
-  availability_zone = try(each.value.availability_zone, null)
-
-  depends_on = [aws_lambda_permission.this]
-}
 
 ################################################################################
 # Lambda Permission
@@ -614,10 +584,11 @@ resource "aws_lb_target_group_attachment" "additional" {
 # This filtered list is used to create those permission resources. # To get the
 # lambda_function_name, the 6th index is taken from the function ARN format below
 # arn:aws:lambda:<region>:<account-id>:function:my-function-name:<version-number>
+
 locals {
   lambda_target_groups = {
-    for k, v in var.target_groups :
-    (k) => merge(v, { lambda_function_name = split(":", v.target_id)[6] })
+    for v in var.target_groups :
+    (v.name) => merge(v, { lambda_function_name = split(":", v.target.id)[6] })
     if try(v.attach_lambda_permission, false)
   }
 }
@@ -625,9 +596,8 @@ locals {
 resource "aws_lambda_permission" "this" {
   for_each = local.lambda_target_groups
 
-  function_name = each.value.lambda_function_name
-  qualifier     = try(each.value.lambda_qualifier, null)
-
+  function_name      = each.value.lambda_function_name
+  qualifier          = try(each.value.lambda_qualifier, null)
   statement_id       = try(each.value.lambda_statement_id, "AllowExecutionFromLb")
   action             = try(each.value.lambda_action, "lambda:InvokeFunction")
   principal          = try(each.value.lambda_principal, "elasticloadbalancing.${data.aws_partition.current.dns_suffix}")
@@ -659,8 +629,39 @@ resource "aws_route53_record" "this" {
 ################################################################################
 
 resource "aws_wafv2_web_acl_association" "this" {
-  count = var.associate_web_acl ? 1 : 0
-
+  count        = var.associate_web_acl ? 1 : 0
   resource_arn = aws_lb.this.arn
   web_acl_arn  = var.web_acl_arn
 }
+
+################################################################################
+# Bucket Access Policy
+################################################################################
+
+# access logs
+
+# data "aws_s3_bucket" "access_logs" {
+#   count  = var.access_logs.enabled ? 1 : 0
+#   bucket = aws_lb.this.access_logs[0].bucket
+# }
+
+# data "aws_iam_policy_document" "access_logs" {
+#   count = var.access_logs.enabled ? 1 : 0
+#   statement {
+#     effect  = "Allow"
+#     actions = ["s3:PutObject"]
+#     principals {
+#       type        = "AWS"
+#       identifiers = [data.aws_elb_service_account.current.arn]
+#     }
+#     resources = [
+#       "${data.aws_s3_bucket.access_logs[0].arn}/*",
+#     ]
+#   }
+# }
+
+# resource "aws_s3_bucket_policy" "access_logs" {
+#   count  = var.access_logs.enabled ? 1 : 0
+#   bucket = aws_lb.this.access_logs[0].bucket
+#   policy = data.aws_iam_policy_document.access_logs[0].json
+# }

@@ -25,7 +25,7 @@ module "tgw2" {
     {
       name       = module.hub2.vpc_name
       vpc_id     = module.hub2.vpc_id
-      subnet_ids = [module.hub2.subnet_ids["ManagementSubnet"], ]
+      subnet_ids = [module.hub2.subnet_ids["ManagementSubnetA"], ]
       vpc_routes = [
         { name = "private-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub2.route_table_ids["private"] },
         { name = "public-internal", ipv4_prefixes = local.private_prefixes_ipv4, route_table_id = module.hub2.route_table_ids["public"] },
@@ -36,7 +36,7 @@ module "tgw2" {
     {
       name       = module.spoke4.vpc_name
       vpc_id     = module.spoke4.vpc_id
-      subnet_ids = [module.spoke4.subnet_ids["ManagementSubnet"], ]
+      subnet_ids = [module.spoke4.subnet_ids["ManagementSubnetA"], ]
       vpc_routes = [
         { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke4.route_table_ids["private"] },
       ]
@@ -46,7 +46,7 @@ module "tgw2" {
     {
       name       = module.spoke5.vpc_name
       vpc_id     = module.spoke5.vpc_id
-      subnet_ids = [module.spoke5.subnet_ids["ManagementSubnet"], ]
+      subnet_ids = [module.spoke5.subnet_ids["ManagementSubnetA"], ]
       vpc_routes = [
         { name = "default", ipv4_prefixes = ["0.0.0.0/0"], route_table_id = module.spoke5.route_table_ids["private"] },
       ]

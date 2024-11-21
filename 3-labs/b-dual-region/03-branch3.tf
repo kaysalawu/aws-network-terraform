@@ -21,10 +21,8 @@ module "branch3" {
 
   subnets = local.branch3_subnets
 
-  create_internet_gateway = true
-
   nat_config = [
-    { scope = "public", subnet = "UntrustSubnet", },
+    { scope = "public", subnet = "UntrustSubnetA", },
   ]
 
   route_table_config = [
@@ -32,7 +30,7 @@ module "branch3" {
       scope   = "private"
       subnets = [for k, v in local.branch3_subnets : k if v.scope == "private"]
       routes = [
-        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnetA" },
       ]
     },
     {
@@ -103,7 +101,7 @@ module "branch3_dns" {
   interfaces = [
     {
       name               = "${local.branch3_prefix}dns-main"
-      subnet_id          = module.branch3.subnet_ids["MainSubnet"]
+      subnet_id          = module.branch3.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch3_dns_addr, ]
       security_group_ids = [module.branch3.ec2_security_group_id, ]
     }
@@ -138,7 +136,7 @@ module "branch3_vm" {
   interfaces = [
     {
       name               = "${local.branch3_prefix}vm-main"
-      subnet_id          = module.branch3.subnet_ids["MainSubnet"]
+      subnet_id          = module.branch3.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch3_vm_addr, ]
       security_group_ids = [module.branch3.ec2_security_group_id, ]
     }

@@ -35,22 +35,22 @@ variable "route53_records" {
 
 variable "access_logs" {
   description = "Map containing access logging configuration for load balancer"
-  type = list(object({
-    bucket  = string                 # S3 bucket name to store the logs in
-    enabled = optional(bool, false)  # Boolean to enable / disable access_logs
-    prefix  = optional(string, null) # S3 bucket prefix. Logs are stored in the root if not configured
-  }))
-  default = []
+  type = object({
+    bucket  = optional(string, "")  # S3 bucket name to store the logs in
+    enabled = optional(bool, false) # Enable / disable access_logs
+    prefix  = optional(string, "")  # S3 bucket prefix
+  })
+  default = {}
 }
 
 variable "connection_logs" {
   description = "Map containing access logging configuration for load balancer"
-  type = list(object({
-    bucket  = string # S3 bucket name to store the logs in
-    enabled = bool   # Boolean to enable / disable connection_logs
-    prefix  = string # S3 bucket prefix. Logs are stored in the root if not configured
-  }))
-  default = []
+  type = object({
+    bucket  = optional(string, "")  # S3 bucket name to store the logs in
+    enabled = optional(bool, false) # Enable / disable access_logs
+    prefix  = optional(string, "")  # S3 bucket prefix
+  })
+  default = {}
 }
 
 variable "client_keep_alive" {
@@ -92,13 +92,13 @@ variable "enable_cross_zone_load_balancing" {
 variable "enable_deletion_protection" {
   description = "If `true`, deletion of the load balancer will be disabled via the AWS API. This will prevent Terraform from deleting the load balancer. Defaults to `true`"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "enable_http2" {
   description = "Indicates whether HTTP/2 is enabled in application load balancers. Defaults to `true`"
   type        = bool
-  default     = null
+  default     = true
 }
 
 variable "enable_tls_version_and_cipher_suite_headers" {
@@ -125,6 +125,12 @@ variable "enable_zonal_shift" {
   default     = null
 }
 
+variable "enforce_security_group_inbound_rules_on_private_link_traffic" {
+  description = "Indicates whether inbound security group rules are enforced for traffic originating from a PrivateLink. Only valid for Load Balancers of type network. The possible values are on and off."
+  type        = string
+  default     = null
+}
+
 variable "idle_timeout" {
   description = "The time in seconds that the connection is allowed to be idle. Only valid for Load Balancers of type `application`. Default: `60`"
   type        = number
@@ -146,13 +152,7 @@ variable "ip_address_type" {
 variable "load_balancer_type" {
   description = "The type of load balancer to create. Possible values are `application`, `gateway`, or `network`. The default value is `application`"
   type        = string
-  default     = "application"
-}
-
-variable "enforce_security_group_inbound_rules_on_private_link_traffic" {
-  description = "Indicates whether inbound security group rules are enforced for traffic originating from a PrivateLink. Only valid for Load Balancers of type network. The possible values are on and off."
-  type        = string
-  default     = null
+  default     = "network"
 }
 
 variable "name" {
@@ -167,16 +167,16 @@ variable "name_prefix" {
   default     = null
 }
 
-variable "preserve_host_header" {
-  description = "Indicates whether the Application Load Balancer should preserve the Host header in the HTTP request and send it to the target without any change. Defaults to `false`"
-  type        = bool
-  default     = null
-}
-
 variable "security_groups" {
   description = "A list of security group IDs to assign to the LB"
   type        = list(string)
   default     = []
+}
+
+variable "preserve_host_header" {
+  description = "Indicates whether the Application Load Balancer should preserve the Host header in the HTTP request and send it to the target without any change. Defaults to `false`"
+  type        = bool
+  default     = true
 }
 
 variable "subnet_mapping" {
@@ -212,22 +212,69 @@ variable "timeouts" {
 # Listener(s)
 ################################################################################
 
-variable "default_port" {
-  description = "Default port used across the listener and target group"
-  type        = number
-  default     = 80
-}
-
-variable "default_protocol" {
-  description = "Default protocol used across the listener and target group"
-  type        = string
-  default     = "HTTP"
-}
-
 variable "listeners" {
-  description = "Map of listener configurations to create"
-  type        = any
-  default     = {}
+  description = "List of listener configurations"
+  type = list(object({
+    name                     = string
+    alpn_policy              = optional(string, null)
+    certificate_arn          = optional(string, null)
+    port                     = optional(number, null)
+    protocol                 = optional(string, null)
+    ssl_policy               = optional(string, null)
+    tcp_idle_timeout_seconds = optional(number, 60)
+
+    authenticate_cognito = optional(object({
+      default                             = optional(bool, false)
+      user_pool_arn                       = optional(string, null)
+      user_pool_client_id                 = optional(string, null)
+      user_pool_domain                    = optional(string, null)
+      authentication_request_extra_params = optional(map(string), null)
+      on_unauthenticated_request          = optional(string, null)
+      scope                               = optional(string, null)
+      session_cookie_name                 = optional(string, null)
+      session_timeout                     = optional(number, null)
+    }), {})
+
+    authenticate_oidc = optional(object({
+      default                             = optional(bool, false)
+      authorization_endpoint              = optional(string, null)
+      client_id                           = optional(string, null)
+      client_secret                       = optional(string, null)
+      issuer                              = optional(string, null)
+      token_endpoint                      = optional(string, null)
+      user_info_endpoint                  = optional(string, null)
+      authentication_request_extra_params = optional(map(string), null)
+      on_unauthenticated_request          = optional(string, null)
+      scope                               = optional(string, null)
+      session_cookie_name                 = optional(string, null)
+      session_timeout                     = optional(number, null)
+    }), {})
+
+    forward = optional(object({
+      default      = optional(bool, false)
+      order        = optional(number, null)
+      target_group = optional(string, null)
+      stickiness = optional(object({
+        duration = optional(number, null)
+        enabled  = optional(bool, null)
+        type     = optional(string, null)
+      }), {})
+    }), {})
+
+    fixed_response = optional(object({
+      default      = optional(bool, false)
+      content_type = optional(string, null)
+      message_body = optional(string, null)
+      status_code  = optional(string, null)
+    }), {})
+
+    mutual_authentication = optional(list(object({
+      mode                             = string # off, verify, passthrough
+      trust_store_arn                  = string
+      ignore_client_certificate_expiry = optional(bool, false)
+    })), [])
+  }))
+  default = []
 }
 
 ################################################################################
@@ -236,8 +283,73 @@ variable "listeners" {
 
 variable "target_groups" {
   description = "Map of target group configurations to create"
-  type        = any
-  default     = {}
+  type = list(object({
+    name                               = string
+    name_prefix                        = optional(string, null)
+    connection_termination             = optional(bool, null)
+    deregistration_delay               = optional(number, null)
+    lambda_multi_value_headers_enabled = optional(bool, null)
+    load_balancing_algorithm_type      = optional(string, null)
+    load_balancing_anomaly_mitigation  = optional(string, null)
+    load_balancing_cross_zone_enabled  = optional(bool, true)
+    port                               = optional(number, null)
+    preserve_client_ip                 = optional(bool, false)
+    protocol_version                   = optional(string, null)
+    protocol                           = optional(string, null)
+    proxy_protocol_v2                  = optional(bool, false)
+    slow_start                         = optional(number, null)
+    target_id                          = optional(string, null)
+    ip_address_type                    = optional(string, "ipv4")
+    vpc_id                             = optional(string, null)
+
+    target = optional(object({
+      type              = optional(string, "instance")
+      id                = optional(string, null)
+      port              = optional(number, null)
+      availability_zone = optional(string, null)
+    }), {})
+
+    health_check = optional(object({
+      enabled             = optional(bool, true)
+      interval            = optional(number, 30)
+      matcher             = optional(string, null)
+      path                = optional(string, null)
+      port                = optional(string, "traffic-port") # traffic-port, 1-65535
+      protocol            = optional(string, null)           # TCP, HTTP, HTTPS
+      timeout             = optional(number, null)
+      healthy_threshold   = optional(number, 3) # 2-10
+      unhealthy_threshold = optional(number, 3) # 2-10
+    }), {})
+
+    stickiness = optional(object({
+      cookie_duration = optional(number, null)
+      cookie_name     = optional(string, null)
+      enabled         = optional(bool, null)
+      type            = optional(string, null)
+    }), {})
+
+    target_failover = optional(object({
+      on_deregistration = optional(string, "no_rebalance") # `rebalance`, `no_rebalance`
+      on_unhealthy      = optional(string, "no_rebalance") # `rebalance`, `no_rebalance`
+    }), {})
+
+    target_health_state = optional(object({
+      enable_unhealthy_connection_termination = optional(bool, true)
+      unhealthy_draining_interval             = optional(number, 0) # 0-360000
+    }), {})
+
+    target_group_health = optional(object({
+      dns_failover = optional(object({
+        minimum_healthy_targets_count      = optional(number, 1)    # off, 1-max_number_of_targets
+        minimum_healthy_targets_percentage = optional(string, null) # off, 1-100
+      }), {})
+      unhealthy_state_routing = optional(object({
+        minimum_healthy_targets_count      = optional(number, 1)    # off, 1-max_number_of_targets
+        minimum_healthy_targets_percentage = optional(string, null) # off, 1-100
+      }), {})
+    }), {})
+  }))
+  default = []
 }
 
 variable "additional_target_group_attachments" {

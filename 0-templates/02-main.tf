@@ -114,10 +114,10 @@ locals {
       # scenario_option  = "TwoNics"
       # opn_type         = "TwoNics"
       # custom_data      = base64encode(local.hub1_linux_nva_init)
-      # ilb_untrust_ip   = local.hub1_nva_ilb_untrust_addr
-      # ilb_trust_ip     = local.hub1_nva_ilb_trust_addr
-      # ilb_untrust_ipv6 = local.hub1_nva_ilb_untrust_addr_v6
-      # ilb_trust_ipv6   = local.hub1_nva_ilb_trust_addr_v6
+      # ilb_untrust_ip   = local.hub1_nva_int_nlb_untrust_addr
+      # ilb_trust_ip     = local.hub1_nva_int_nlb_trust_addr
+      # ilb_untrust_ipv6 = local.hub1_nva_int_nlb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub1_nva_int_nlb_trust_addr_v6
     }
   }
 
@@ -129,10 +129,10 @@ locals {
       # scenario_option  = "TwoNics"
       # opn_type         = "TwoNics"
       # custom_data      = base64encode(local.hub2_linux_nva_init)
-      # ilb_untrust_ip   = local.hub2_nva_ilb_untrust_addr
-      # ilb_trust_ip     = local.hub2_nva_ilb_trust_addr
-      # ilb_untrust_ipv6 = local.hub2_nva_ilb_untrust_addr_v6
-      # ilb_trust_ipv6   = local.hub2_nva_ilb_trust_addr_v6
+      # ilb_untrust_ip   = local.hub2_nva_int_nlb_untrust_addr
+      # ilb_trust_ip     = local.hub2_nva_int_nlb_trust_addr
+      # ilb_untrust_ipv6 = local.hub2_nva_int_nlb_untrust_addr_v6
+      # ilb_trust_ipv6   = local.hub2_nva_int_nlb_trust_addr_v6
     }
   }
 
