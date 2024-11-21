@@ -56,7 +56,7 @@ variable "iam_instance_profile" {
   default     = null
 }
 
-variable "vpc_security_group_ids" {
+variable "vpc_sg_ids" {
   description = "vpc security group ids"
   type        = list(string)
   default     = []

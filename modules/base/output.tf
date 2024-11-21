@@ -27,16 +27,20 @@ output "subnet_ids" {
 # security group
 ####################################################
 
-output "bastion_security_group_id" {
+output "bastion_sg_id" {
   value = aws_security_group.bastion_sg.id
 }
 
-output "nva_security_group_id" {
+output "nva_sg_id" {
   value = aws_security_group.nva_sg.id
 }
 
-output "ec2_security_group_id" {
+output "ec2_sg_id" {
   value = aws_security_group.ec2_sg.id
+}
+
+output "elb_sg_id" {
+  value = aws_security_group.elb_sg.id
 }
 
 ####################################################

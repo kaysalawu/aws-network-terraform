@@ -103,7 +103,7 @@ module "branch1_dns" {
       name               = "${local.branch1_prefix}dns-main"
       subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_dns_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      security_group_ids = [module.branch1.ec2_sg_id, ]
     }
   ]
   depends_on = [
@@ -138,7 +138,7 @@ module "branch1_vm" {
       name               = "${local.branch1_prefix}vm-main"
       subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_vm_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      security_group_ids = [module.branch1.ec2_sg_id, ]
     }
   ]
   depends_on = [

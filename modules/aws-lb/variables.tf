@@ -1,10 +1,4 @@
 
-variable "create" {
-  description = "Controls if resources should be created (affects nearly all resources)"
-  type        = bool
-  default     = true
-}
-
 variable "tags" {
   description = "A map of tags to add to all resources"
   type        = map(string)
@@ -15,12 +9,6 @@ variable "vpc_id" {
   description = "Identifier of the VPC where the security group will be created"
   type        = string
   default     = null
-}
-
-variable "create_security_group" {
-  description = "Determines if a security group is created"
-  type        = bool
-  default     = true
 }
 
 variable "route53_records" {
@@ -359,8 +347,14 @@ variable "additional_target_group_attachments" {
 }
 
 ################################################################################
-# WAF
+# Security
 ################################################################################
+
+variable "security_group_ids" {
+  description = "A list of security group IDs to assign to the LB"
+  type        = list(string)
+  default     = []
+}
 
 variable "associate_web_acl" {
   description = "Indicates whether a Web Application Firewall (WAF) ACL should be associated with the load balancer"

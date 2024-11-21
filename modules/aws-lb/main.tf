@@ -28,7 +28,7 @@ resource "aws_lb" "this" {
   load_balancer_type               = var.load_balancer_type
   name                             = var.name
   name_prefix                      = var.name_prefix
-  security_groups                  = var.security_groups
+  security_groups                  = var.security_group_ids
   preserve_host_header             = var.preserve_host_header
 
   enable_tls_version_and_cipher_suite_headers                  = var.enable_tls_version_and_cipher_suite_headers

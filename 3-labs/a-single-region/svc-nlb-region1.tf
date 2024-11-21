@@ -44,6 +44,10 @@ module "spoke1_nlb" {
 
   dns_record_client_routing_policy = "availability_zone_affinity"
 
+  security_group_ids = [
+    module.spoke1.elb_sg_id
+  ]
+
   subnet_mapping = [
     { allocation_id = aws_eip.spoke1_nlb_eip_a.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetA"] },
     { allocation_id = aws_eip.spoke1_nlb_eip_b.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetB"] },
