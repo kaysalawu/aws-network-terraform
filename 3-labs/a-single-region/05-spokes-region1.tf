@@ -27,10 +27,6 @@ module "spoke1" {
     zone_name = aws_route53_zone.region1.name
   }
 
-  # nat_config = [
-  #   { scope = "public", subnet = "UntrustSubnetA", },
-  # ]
-
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "private"] },
     {
@@ -110,10 +106,6 @@ module "spoke2" {
   private_dns_config = {
     zone_name = aws_route53_zone.region1.name
   }
-
-  # nat_config = [
-  #   { scope = "public", subnet = "UntrustSubnetA", },
-  # ]
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "private"] },

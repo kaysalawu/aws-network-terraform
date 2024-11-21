@@ -57,8 +57,6 @@ module "tgw2" {
 
   transit_gateway_routes = [
     { name = "internet", route_table_name = "vpc", attachment_name = module.hub2.vpc_name, ipv4_prefixes = ["0.0.0.0/0"] },
-    # { name = "spoke4", route_table_name = "hub", attachment_name = module.spoke4.vpc_name, ipv4_prefixes = local.spoke4_cidr },
-    # { name = "spoke5", route_table_name = "hub", attachment_name = module.spoke5.vpc_name, ipv4_prefixes = local.spoke5_cidr },
   ]
 }
 

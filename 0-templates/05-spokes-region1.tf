@@ -29,7 +29,14 @@ module "spoke1" {
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "private"] },
-    { scope = "public", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "public"] },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.spoke1_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
   ]
 
   depends_on = [
@@ -102,7 +109,14 @@ module "spoke2" {
 
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke2_subnets : k if v.scope == "private"] },
-    { scope = "public", subnets = [for k, v in local.spoke1_subnets : k if v.scope == "public"] },
+    {
+      scope   = "public"
+      subnets = [for k, v in local.spoke2_subnets : k if v.scope == "public"]
+      routes = [
+        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
+        { ipv6_cidr = "::/0", internet_gateway = true },
+      ]
+    },
   ]
 
   depends_on = [
