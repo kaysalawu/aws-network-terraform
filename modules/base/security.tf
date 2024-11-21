@@ -77,16 +77,16 @@ resource "aws_security_group_rule" "ec2_ingress_internal_all" {
 
 # ingress - external (tcp)
 
-# resource "aws_security_group_rule" "ingress_external_tcp" {
-#   for_each          = toset(local.ec2_external_ingress_ports)
-#   type              = "ingress"
-#   from_port         = 0
-#   to_port           = each.value
-#   protocol          = "tcp"
-#   cidr_blocks       = ["0.0.0.0/0"]
-#   ipv6_cidr_blocks  = ["::/0"]
-#   security_group_id = aws_security_group.ec2_sg.id
-# }
+resource "aws_security_group_rule" "ingress_external_tcp" {
+  for_each          = toset(local.external_ingress_ports)
+  type              = "ingress"
+  from_port         = 0
+  to_port           = each.value
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.ec2_sg.id
+}
 
 # egress - all
 

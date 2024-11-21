@@ -171,9 +171,9 @@ variable "subnet_mapping" {
   description = "A list of subnet mapping blocks describing subnets to attach to load balancer"
   type = list(object({
     subnet_id            = string
-    allocation_id        = optional(string, null)
-    ipv6_address         = optional(string, null)
-    private_ipv4_address = optional(string, null)
+    allocation_id        = optional(string)
+    ipv6_address         = optional(string)
+    private_ipv4_address = optional(string)
   }))
   default = []
 }
@@ -204,56 +204,68 @@ variable "listeners" {
   description = "List of listener configurations"
   type = list(object({
     name                     = string
-    alpn_policy              = optional(string, null)
-    certificate_arn          = optional(string, null)
-    port                     = optional(number, null)
-    protocol                 = optional(string, null)
-    ssl_policy               = optional(string, null)
+    alpn_policy              = optional(string)
+    certificate_arn          = optional(string)
+    port                     = optional(number)
+    protocol                 = optional(string)
+    ssl_policy               = optional(string)
     tcp_idle_timeout_seconds = optional(number, 60)
 
+    # default actions
+    #----------------------------------------------------------------
     authenticate_cognito = optional(object({
       default                             = optional(bool, false)
-      user_pool_arn                       = optional(string, null)
-      user_pool_client_id                 = optional(string, null)
-      user_pool_domain                    = optional(string, null)
+      user_pool_arn                       = optional(string)
+      user_pool_client_id                 = optional(string)
+      user_pool_domain                    = optional(string)
       authentication_request_extra_params = optional(map(string), null)
-      on_unauthenticated_request          = optional(string, null)
-      scope                               = optional(string, null)
-      session_cookie_name                 = optional(string, null)
-      session_timeout                     = optional(number, null)
+      on_unauthenticated_request          = optional(string)
+      scope                               = optional(string)
+      session_cookie_name                 = optional(string)
+      session_timeout                     = optional(number)
     }), {})
 
     authenticate_oidc = optional(object({
       default                             = optional(bool, false)
-      authorization_endpoint              = optional(string, null)
-      client_id                           = optional(string, null)
-      client_secret                       = optional(string, null)
-      issuer                              = optional(string, null)
-      token_endpoint                      = optional(string, null)
-      user_info_endpoint                  = optional(string, null)
+      authorization_endpoint              = optional(string)
+      client_id                           = optional(string)
+      client_secret                       = optional(string)
+      issuer                              = optional(string)
+      token_endpoint                      = optional(string)
+      user_info_endpoint                  = optional(string)
       authentication_request_extra_params = optional(map(string), null)
-      on_unauthenticated_request          = optional(string, null)
-      scope                               = optional(string, null)
-      session_cookie_name                 = optional(string, null)
-      session_timeout                     = optional(number, null)
-    }), {})
-
-    forward = optional(object({
-      default      = optional(bool, false)
-      order        = optional(number, null)
-      target_group = optional(string, null)
-      stickiness = optional(object({
-        duration = optional(number, null)
-        enabled  = optional(bool, null)
-        type     = optional(string, null)
-      }), {})
+      on_unauthenticated_request          = optional(string)
+      scope                               = optional(string)
+      session_cookie_name                 = optional(string)
+      session_timeout                     = optional(number)
     }), {})
 
     fixed_response = optional(object({
       default      = optional(bool, false)
-      content_type = optional(string, null)
-      message_body = optional(string, null)
-      status_code  = optional(string, null)
+      content_type = optional(string)
+      message_body = optional(string)
+      status_code  = optional(string)
+    }), {})
+
+    forward = optional(object({
+      default      = optional(bool, false)
+      order        = optional(number)
+      target_group = optional(string)
+      target_groups = optional(list(object({
+        name   = optional(string) # use for target group created in the module
+        arn    = optional(string) # use for externally created target group
+        weight = optional(number) # 0-999
+      })), [])
+    }), {})
+
+    redirect = optional(object({
+      default     = optional(bool, false)
+      status_code = optional(string)
+      host        = optional(string)
+      path        = optional(string)
+      port        = optional(string)
+      protocol    = optional(string)
+      query       = optional(string)
     }), {})
 
     mutual_authentication = optional(list(object({
@@ -263,6 +275,23 @@ variable "listeners" {
     })), [])
   }))
   default = []
+
+  validation {
+    condition = alltrue([
+      for listener in var.listeners : alltrue([
+        for tg in try(listener.forward.target_groups, []) : !(tg.name != null && tg.arn != null)
+      ])
+    ])
+    error_message = "Both 'name' and 'arn' cannot be specified concurrently in 'target_groups'. Use 'arn' for externally created target groups."
+  }
+  validation {
+    condition = alltrue([
+      for listener in var.listeners : (
+        !(try(listener.forward.target_group, null) != null && length(try(listener.forward.target_groups, [])) > 0)
+      )
+    ])
+    error_message = "You cannot specify both 'target_group' and 'target_groups' concurrently in the 'forward' block. 'target_groups is not applicable for network load balancers."
+  }
 }
 
 ################################################################################
@@ -273,47 +302,47 @@ variable "target_groups" {
   description = "Map of target group configurations to create"
   type = list(object({
     name                               = string
-    name_prefix                        = optional(string, null)
+    name_prefix                        = optional(string)
     connection_termination             = optional(bool, null)
-    deregistration_delay               = optional(number, null)
+    deregistration_delay               = optional(number)
     lambda_multi_value_headers_enabled = optional(bool, null)
-    load_balancing_algorithm_type      = optional(string, null)
-    load_balancing_anomaly_mitigation  = optional(string, null)
+    load_balancing_algorithm_type      = optional(string)
+    load_balancing_anomaly_mitigation  = optional(string)
     load_balancing_cross_zone_enabled  = optional(bool, true)
-    port                               = optional(number, null)
-    preserve_client_ip                 = optional(bool, false)
-    protocol_version                   = optional(string, null)
-    protocol                           = optional(string, null)
+    port                               = optional(number)
+    preserve_client_ip                 = optional(bool, null)
+    protocol_version                   = optional(string)
+    protocol                           = optional(string)
     proxy_protocol_v2                  = optional(bool, false)
-    slow_start                         = optional(number, null)
-    target_id                          = optional(string, null)
+    slow_start                         = optional(number)
+    target_id                          = optional(string)
     ip_address_type                    = optional(string, "ipv4")
-    vpc_id                             = optional(string, null)
+    vpc_id                             = optional(string)
 
     target = optional(object({
       type              = optional(string, "instance")
-      id                = optional(string, null)
-      port              = optional(number, null)
-      availability_zone = optional(string, null)
+      id                = optional(string)
+      port              = optional(number)
+      availability_zone = optional(string)
     }), {})
 
     health_check = optional(object({
       enabled             = optional(bool, true)
       interval            = optional(number, 30)
-      matcher             = optional(string, null)
-      path                = optional(string, null)
+      matcher             = optional(string)
+      path                = optional(string)
       port                = optional(string, "traffic-port") # traffic-port, 1-65535
-      protocol            = optional(string, null)           # TCP, HTTP, HTTPS
-      timeout             = optional(number, null)
+      protocol            = optional(string)                 # TCP, HTTP, HTTPS
+      timeout             = optional(number)
       healthy_threshold   = optional(number, 3) # 2-10
       unhealthy_threshold = optional(number, 3) # 2-10
     }), {})
 
     stickiness = optional(object({
-      cookie_duration = optional(number, null)
-      cookie_name     = optional(string, null)
+      cookie_duration = optional(number)
+      cookie_name     = optional(string)
       enabled         = optional(bool, null)
-      type            = optional(string, null)
+      type            = optional(string)
     }), {})
 
     target_failover = optional(object({
@@ -328,12 +357,12 @@ variable "target_groups" {
 
     target_group_health = optional(object({
       dns_failover = optional(object({
-        minimum_healthy_targets_count      = optional(number, 1)    # off, 1-max_number_of_targets
-        minimum_healthy_targets_percentage = optional(string, null) # off, 1-100
+        minimum_healthy_targets_count      = optional(number, 1) # off, 1-max_number_of_targets
+        minimum_healthy_targets_percentage = optional(string)    # off, 1-100
       }), {})
       unhealthy_state_routing = optional(object({
-        minimum_healthy_targets_count      = optional(number, 1)    # off, 1-max_number_of_targets
-        minimum_healthy_targets_percentage = optional(string, null) # off, 1-100
+        minimum_healthy_targets_count      = optional(number, 1) # off, 1-max_number_of_targets
+        minimum_healthy_targets_percentage = optional(string)    # off, 1-100
       }), {})
     }), {})
   }))
