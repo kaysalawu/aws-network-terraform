@@ -2,15 +2,12 @@
 data "aws_partition" "current" {}
 data "aws_elb_service_account" "current" {}
 
-locals {
-  tags = merge(var.tags, { terraform-aws-modules = "alb" })
-}
-
-################################################################################
-# Load Balancer
-################################################################################
+####################################################
+# load balancer
+####################################################
 
 resource "aws_lb" "this" {
+  count                            = var.create ? 1 : 0
   client_keep_alive                = var.client_keep_alive
   customer_owned_ipv4_pool         = var.customer_owned_ipv4_pool
   desync_mitigation_mode           = var.desync_mitigation_mode
@@ -63,7 +60,7 @@ resource "aws_lb" "this" {
   }
 
   subnets                    = var.subnets
-  tags                       = local.tags
+  tags                       = var.tags
   xff_header_processing_mode = var.xff_header_processing_mode
 
   timeouts {
@@ -86,10 +83,10 @@ resource "aws_lb_listener" "this" {
   certificate_arn          = try(each.value.certificate_arn, null)
   port                     = each.value.port
   protocol                 = each.value.protocol
-  load_balancer_arn        = aws_lb.this.arn
+  load_balancer_arn        = var.create ? aws_lb.this[0].arn : each.value.load_balancer_arn
   ssl_policy               = try(each.value.ssl_policy, null)
   tcp_idle_timeout_seconds = try(each.value.tcp_idle_timeout_seconds, null)
-  tags                     = merge(local.tags, try(each.value.tags, {}))
+  tags                     = var.tags
 
   dynamic "default_action" {
     for_each = try(each.value.authenticate_cognito.default ? [each.value.authenticate_cognito] : [], [])
@@ -186,9 +183,9 @@ resource "aws_lb_listener" "this" {
 }
 
 /*
-################################################################################
-# Certificate(s)
-################################################################################
+####################################################
+# certificates
+####################################################
 
 locals {
   # Take the list of `additional_certificate_arns` from the listener and create
@@ -217,9 +214,9 @@ resource "aws_lb_listener_certificate" "this" {
   certificate_arn = each.value.certificate_arn
 }*/
 
-################################################################################
-# Target Group(s)
-################################################################################
+####################################################
+# target groups
+####################################################
 
 resource "aws_lb_target_group" "this" {
   for_each = { for v in var.target_groups : v.name => v }
@@ -242,7 +239,11 @@ resource "aws_lb_target_group" "this" {
   ip_address_type                    = each.value.ip_address_type
   vpc_id                             = each.value.vpc_id
 
-  tags = merge(local.tags, try(each.value.tags, {}))
+  tags = merge(
+    { Name = each.key },
+    var.tags,
+    each.value.tags
+  )
 
   dynamic "health_check" {
     for_each = try([each.value.health_check], [])
@@ -308,12 +309,15 @@ resource "aws_lb_target_group" "this" {
 
   lifecycle {
     # create_before_destroy = true
+    ignore_changes = [
+      target_failover,
+    ]
   }
 }
 
-################################################################################
+####################################################
 # Target Group Attachment
-################################################################################
+####################################################
 
 resource "aws_lb_target_group_attachment" "this" {
   for_each          = { for v in var.target_groups : v.name => v }
@@ -323,75 +327,62 @@ resource "aws_lb_target_group_attachment" "this" {
   availability_zone = each.value.target.availability_zone
 }
 
+####################################################
+# service endpoints
+####################################################
 
-################################################################################
-# Lambda Permission
-################################################################################
+resource "aws_vpc_endpoint_service" "this" {
+  count = var.endpoint_service.enabled ? 1 : 0
 
-# Filter out the attachments for lambda functions. The ALB target group needs
-# permission to forward a request on to # the specified lambda function.
-# This filtered list is used to create those permission resources. # To get the
-# lambda_function_name, the 6th index is taken from the function ARN format below
-# arn:aws:lambda:<region>:<account-id>:function:my-function-name:<version-number>
+  acceptance_required        = var.endpoint_service.acceptance_required
+  allowed_principals         = var.endpoint_service.allowed_principals
+  gateway_load_balancer_arns = var.endpoint_service.gateway_load_balancer_arns
+  network_load_balancer_arns = [aws_lb.this[0].arn, ]
+  private_dns_name           = var.endpoint_service.private_dns_name
+  supported_ip_address_types = var.endpoint_service.dualstack ? ["ipv4", "ipv6"] : ["ipv4"]
 
-locals {
-  lambda_target_groups = {
-    for v in var.target_groups :
-    (v.name) => merge(v, { lambda_function_name = split(":", v.target.id)[6] })
-    if try(v.attach_lambda_permission, false)
-  }
+  tags = merge(
+    var.tags,
+    var.endpoint_service.tags
+  )
 }
 
-resource "aws_lambda_permission" "this" {
-  for_each = local.lambda_target_groups
-
-  function_name      = each.value.lambda_function_name
-  qualifier          = try(each.value.lambda_qualifier, null)
-  statement_id       = try(each.value.lambda_statement_id, "AllowExecutionFromLb")
-  action             = try(each.value.lambda_action, "lambda:InvokeFunction")
-  principal          = try(each.value.lambda_principal, "elasticloadbalancing.${data.aws_partition.current.dns_suffix}")
-  source_arn         = aws_lb_target_group.this[each.key].arn
-  source_account     = try(each.value.lambda_source_account, null)
-  event_source_token = try(each.value.lambda_event_source_token, null)
-}
-
-################################################################################
-# Route53 Records
-################################################################################
+####################################################
+# route53 records
+####################################################
 
 resource "aws_route53_record" "this" {
-  for_each = var.route53_records
-
-  zone_id = each.value.zone_id
-  name    = try(each.value.name, each.key)
-  type    = each.value.type
+  for_each = { for v in var.route53_records : v.name => v }
+  zone_id  = each.value.zone_id
+  name     = each.value.name
+  type     = each.value.type
 
   alias {
-    name                   = aws_lb.this.dns_name
-    zone_id                = aws_lb.this.zone_id
+    name                   = aws_lb.this[0].dns_name
+    zone_id                = aws_lb.this[0].zone_id
     evaluate_target_health = true
   }
 }
 
-################################################################################
-# WAF
-################################################################################
+####################################################
+# waf
+####################################################
 
 resource "aws_wafv2_web_acl_association" "this" {
   count        = var.associate_web_acl ? 1 : 0
-  resource_arn = aws_lb.this.arn
+  resource_arn = aws_lb.this[0].arn
   web_acl_arn  = var.web_acl_arn
 }
 
-################################################################################
-# Bucket Access Policy
-################################################################################
+####################################################
+# bucket access policy
+####################################################
 
 # access logs
 
 # data "aws_s3_bucket" "access_logs" {
 #   count  = var.access_logs.enabled ? 1 : 0
-#   bucket = aws_lb.this.access_logs[0].bucket
+#   bucket = aws_lb.this[0].access_logs[0].bucket
 # }
 
 # data "aws_iam_policy_document" "access_logs" {
@@ -411,6 +402,6 @@ resource "aws_wafv2_web_acl_association" "this" {
 
 # resource "aws_s3_bucket_policy" "access_logs" {
 #   count  = var.access_logs.enabled ? 1 : 0
-#   bucket = aws_lb.this.access_logs[0].bucket
+#   bucket = aws_lb.this[0].access_logs[0].bucket
 #   policy = data.aws_iam_policy_document.access_logs[0].json
 # }

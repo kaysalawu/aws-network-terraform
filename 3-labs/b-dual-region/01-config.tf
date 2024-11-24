@@ -132,7 +132,8 @@ locals {
     ("ExternalNLBSubnetB") = { cidr = "10.11.19.0/24", ipv6_cidr = "2000:abc:11:19::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "public", }
     ("InternalNLBSubnetA") = { cidr = "10.11.20.0/24", ipv6_cidr = "2000:abc:11:20::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.11.21.0/24", ipv6_cidr = "2000:abc:11:21::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
-    ("PrivateEpSubnetA")   = { cidr = "10.11.22.0/24", ipv6_cidr = "2000:abc:11:22::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("EndpointSubnetA")    = { cidr = "10.11.22.0/24", ipv6_cidr = "2000:abc:11:22::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("EndpointSubnetB")    = { cidr = "10.11.23.0/24", ipv6_cidr = "2000:abc:11:23::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
   hub1_default_gw_main          = cidrhost(local.hub1_subnets["MainSubnetA"].cidr, 1)
   hub1_default_gw_untrust       = cidrhost(local.hub1_subnets["UntrustSubnetA"].cidr, 1)
@@ -197,7 +198,8 @@ locals {
     ("ExternalNLBSubnetB") = { cidr = "10.22.19.0/24", ipv6_cidr = "2000:abc:22:19::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "public", }
     ("InternalNLBSubnetA") = { cidr = "10.22.20.0/24", ipv6_cidr = "2000:abc:22:20::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.22.21.0/24", ipv6_cidr = "2000:abc:22:21::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
-    ("PrivateEpSubnetA")   = { cidr = "10.22.22.0/24", ipv6_cidr = "2000:abc:22:22::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("EndpointSubnetA")    = { cidr = "10.22.22.0/24", ipv6_cidr = "2000:abc:22:22::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
+    ("EndpointSubnetB")    = { cidr = "10.22.23.0/24", ipv6_cidr = "2000:abc:22:23::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
   hub2_default_gw_main          = cidrhost(local.hub2_subnets["MainSubnetA"].cidr, 1)
   hub2_default_gw_untrust       = cidrhost(local.hub2_subnets["UntrustSubnetA"].cidr, 1)
@@ -412,13 +414,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.1.16.0/24", ipv6_cidr = "2000:abc:1:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.1.17.0/24", ipv6_cidr = "2000:abc:1:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke1_vm_addr      = cidrhost(local.spoke1_subnets["MainSubnetA"].cidr, 5)
-  spoke1_int_nlb_addr = cidrhost(local.spoke1_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke1_int_alb_addr = cidrhost(local.spoke1_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke1_vm_addr        = cidrhost(local.spoke1_subnets["MainSubnetA"].cidr, 5)
+  spoke1_int_nlb_addr_a = cidrhost(local.spoke1_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke1_int_nlb_addr_b = cidrhost(local.spoke1_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke1_int_alb_addr_a = cidrhost(local.spoke1_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke1_int_alb_addr_b = cidrhost(local.spoke1_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke1_ext_nlb_addr_a = cidrhost(local.spoke1_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke1_ext_nlb_addr_b = cidrhost(local.spoke1_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke1_ext_alb_addr_a = cidrhost(local.spoke1_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke1_ext_alb_addr_b = cidrhost(local.spoke1_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke1_vm_addr_v6      = cidrhost(local.spoke1_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke1_int_nlb_addr_v6 = cidrhost(local.spoke1_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke1_int_alb_addr_v6 = cidrhost(local.spoke1_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke1_vm_addr_v6        = cidrhost(local.spoke1_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke1_int_nlb_addr_a_v6 = cidrhost(local.spoke1_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke1_int_alb_addr_v6   = cidrhost(local.spoke1_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke1_pl_nat_addr      = cidrhost(local.spoke1_subnets["MainSubnetA"].cidr, 50)
   spoke1_vm_hostname      = "spoke1Vm"
@@ -456,13 +464,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.2.16.0/24", ipv6_cidr = "2000:abc:2:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.2.17.0/24", ipv6_cidr = "2000:abc:2:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke2_vm_addr      = cidrhost(local.spoke2_subnets["MainSubnetA"].cidr, 5)
-  spoke2_int_nlb_addr = cidrhost(local.spoke2_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke2_ext_alb_addr = cidrhost(local.spoke2_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke2_vm_addr        = cidrhost(local.spoke2_subnets["MainSubnetA"].cidr, 5)
+  spoke2_int_nlb_addr_a = cidrhost(local.spoke2_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke2_int_nlb_addr_b = cidrhost(local.spoke2_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke2_int_alb_addr_a = cidrhost(local.spoke2_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke2_int_alb_addr_b = cidrhost(local.spoke2_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke2_ext_nlb_addr_a = cidrhost(local.spoke2_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke2_ext_nlb_addr_b = cidrhost(local.spoke2_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke2_ext_alb_addr_a = cidrhost(local.spoke2_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke2_ext_alb_addr_b = cidrhost(local.spoke2_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke2_vm_addr_v6      = cidrhost(local.spoke2_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke2_int_nlb_addr_v6 = cidrhost(local.spoke2_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke2_ext_alb_addr_v6 = cidrhost(local.spoke2_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke2_vm_addr_v6        = cidrhost(local.spoke2_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke2_int_nlb_addr_a_v6 = cidrhost(local.spoke2_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke2_ext_alb_addr_a_v6 = cidrhost(local.spoke2_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke2_pl_nat_addr      = cidrhost(local.spoke2_subnets["MainSubnetA"].cidr, 50)
   spoke2_vm_hostname      = "spoke2Vm"
@@ -500,13 +514,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.3.16.0/24", ipv6_cidr = "2000:abc:3:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.3.17.0/24", ipv6_cidr = "2000:abc:3:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke3_vm_addr      = cidrhost(local.spoke3_subnets["MainSubnetA"].cidr, 5)
-  spoke3_int_nlb_addr = cidrhost(local.spoke3_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke3_ext_alb_addr = cidrhost(local.spoke3_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke3_vm_addr        = cidrhost(local.spoke3_subnets["MainSubnetA"].cidr, 5)
+  spoke3_int_nlb_addr_a = cidrhost(local.spoke3_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke3_int_nlb_addr_b = cidrhost(local.spoke3_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke3_int_alb_addr_a = cidrhost(local.spoke3_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke3_int_alb_addr_b = cidrhost(local.spoke3_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke3_ext_nlb_addr_a = cidrhost(local.spoke3_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke3_ext_nlb_addr_b = cidrhost(local.spoke3_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke3_ext_alb_addr_a = cidrhost(local.spoke3_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke3_ext_alb_addr_b = cidrhost(local.spoke3_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke3_vm_addr_v6      = cidrhost(local.spoke3_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke3_int_nlb_addr_v6 = cidrhost(local.spoke3_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke3_ext_alb_addr_v6 = cidrhost(local.spoke3_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke3_vm_addr_v6        = cidrhost(local.spoke3_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke3_int_nlb_addr_a_v6 = cidrhost(local.spoke3_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke3_ext_alb_addr_a_v6 = cidrhost(local.spoke3_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke3_pl_nat_addr      = cidrhost(local.spoke3_subnets["MainSubnetA"].cidr, 50)
   spoke3_vm_hostname      = "spoke3Vm"
@@ -544,13 +564,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.4.16.0/24", ipv6_cidr = "2000:abc:4:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.4.17.0/24", ipv6_cidr = "2000:abc:4:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke4_vm_addr      = cidrhost(local.spoke4_subnets["MainSubnetA"].cidr, 5)
-  spoke4_int_nlb_addr = cidrhost(local.spoke4_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke4_ext_alb_addr = cidrhost(local.spoke4_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke4_vm_addr        = cidrhost(local.spoke4_subnets["MainSubnetA"].cidr, 5)
+  spoke4_int_nlb_addr_a = cidrhost(local.spoke4_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke4_int_nlb_addr_b = cidrhost(local.spoke4_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke4_int_alb_addr_a = cidrhost(local.spoke4_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke4_int_alb_addr_b = cidrhost(local.spoke4_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke4_ext_nlb_addr_a = cidrhost(local.spoke4_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke4_ext_nlb_addr_b = cidrhost(local.spoke4_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke4_ext_alb_addr_a = cidrhost(local.spoke4_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke4_ext_alb_addr_b = cidrhost(local.spoke4_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke4_vm_addr_v6      = cidrhost(local.spoke4_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke4_int_nlb_addr_v6 = cidrhost(local.spoke4_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke4_ext_alb_addr_v6 = cidrhost(local.spoke4_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke4_vm_addr_v6        = cidrhost(local.spoke4_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke4_int_nlb_addr_a_v6 = cidrhost(local.spoke4_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke4_ext_alb_addr_a_v6 = cidrhost(local.spoke4_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke4_pl_nat_addr      = cidrhost(local.spoke4_subnets["MainSubnetA"].cidr, 50)
   spoke4_vm_hostname      = "spoke4Vm"
@@ -588,13 +614,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.5.16.0/24", ipv6_cidr = "2000:abc:5:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.5.17.0/24", ipv6_cidr = "2000:abc:5:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke5_vm_addr      = cidrhost(local.spoke5_subnets["MainSubnetA"].cidr, 5)
-  spoke5_int_nlb_addr = cidrhost(local.spoke5_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke5_ext_alb_addr = cidrhost(local.spoke5_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke5_vm_addr        = cidrhost(local.spoke5_subnets["MainSubnetA"].cidr, 5)
+  spoke5_int_nlb_addr_a = cidrhost(local.spoke5_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke5_int_nlb_addr_b = cidrhost(local.spoke5_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke5_int_alb_addr_a = cidrhost(local.spoke5_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke5_int_alb_addr_b = cidrhost(local.spoke5_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke5_ext_nlb_addr_a = cidrhost(local.spoke5_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke5_ext_nlb_addr_b = cidrhost(local.spoke5_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke5_ext_alb_addr_a = cidrhost(local.spoke5_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke5_ext_alb_addr_b = cidrhost(local.spoke5_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke5_vm_addr_v6      = cidrhost(local.spoke5_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke5_int_nlb_addr_v6 = cidrhost(local.spoke5_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke5_ext_alb_addr_v6 = cidrhost(local.spoke5_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke5_vm_addr_v6        = cidrhost(local.spoke5_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke5_int_nlb_addr_a_v6 = cidrhost(local.spoke5_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke5_ext_alb_addr_a_v6 = cidrhost(local.spoke5_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke5_pl_nat_addr      = cidrhost(local.spoke5_subnets["MainSubnetA"].cidr, 50)
   spoke5_vm_hostname      = "spoke5Vm"
@@ -632,13 +664,19 @@ locals {
     ("InternalNLBSubnetA") = { cidr = "10.6.16.0/24", ipv6_cidr = "2000:abc:6:16::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "a", scope = "private", }
     ("InternalNLBSubnetB") = { cidr = "10.6.17.0/24", ipv6_cidr = "2000:abc:6:17::/64", ipv6_newbits = 8, ipv6_netnum = 7, az = "b", scope = "private", }
   }
-  spoke6_vm_addr      = cidrhost(local.spoke6_subnets["MainSubnetA"].cidr, 5)
-  spoke6_int_nlb_addr = cidrhost(local.spoke6_subnets["InternalNLBSubnetA"].cidr, 99)
-  spoke6_ext_alb_addr = cidrhost(local.spoke6_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke6_vm_addr        = cidrhost(local.spoke6_subnets["MainSubnetA"].cidr, 5)
+  spoke6_int_nlb_addr_a = cidrhost(local.spoke6_subnets["InternalNLBSubnetA"].cidr, 99)
+  spoke6_int_nlb_addr_b = cidrhost(local.spoke6_subnets["InternalNLBSubnetB"].cidr, 99)
+  spoke6_int_alb_addr_a = cidrhost(local.spoke6_subnets["InternalALBSubnetA"].cidr, 99)
+  spoke6_int_alb_addr_b = cidrhost(local.spoke6_subnets["InternalALBSubnetB"].cidr, 99)
+  spoke6_ext_nlb_addr_a = cidrhost(local.spoke6_subnets["ExternalNLBSubnetA"].cidr, 99)
+  spoke6_ext_nlb_addr_b = cidrhost(local.spoke6_subnets["ExternalNLBSubnetB"].cidr, 99)
+  spoke6_ext_alb_addr_a = cidrhost(local.spoke6_subnets["ExternalALBSubnetA"].cidr, 99)
+  spoke6_ext_alb_addr_b = cidrhost(local.spoke6_subnets["ExternalALBSubnetB"].cidr, 99)
 
-  spoke6_vm_addr_v6      = cidrhost(local.spoke6_subnets["MainSubnetA"].ipv6_cidr, 5)
-  spoke6_int_nlb_addr_v6 = cidrhost(local.spoke6_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
-  spoke6_ext_alb_addr_v6 = cidrhost(local.spoke6_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
+  spoke6_vm_addr_v6        = cidrhost(local.spoke6_subnets["MainSubnetA"].ipv6_cidr, 5)
+  spoke6_int_nlb_addr_a_v6 = cidrhost(local.spoke6_subnets["InternalNLBSubnetA"].ipv6_cidr, 153)
+  spoke6_ext_alb_addr_a_v6 = cidrhost(local.spoke6_subnets["InternalALBSubnetA"].ipv6_cidr, 153)
 
   spoke6_pl_nat_addr      = cidrhost(local.spoke6_subnets["MainSubnetA"].cidr, 50)
   spoke6_vm_hostname      = "spoke6Vm"

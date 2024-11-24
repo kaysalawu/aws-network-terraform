@@ -12,14 +12,26 @@ variable "vpc_id" {
 }
 
 variable "route53_records" {
-  description = "Map of Route53 records to create. Each record map should contain `zone_id`, `name`, and `type`"
-  type        = any
-  default     = {}
+  description = "List of route53 records to create"
+  type = list(object({
+    zone_id = string
+    name    = string
+    type    = optional(string, "A")
+    ttl     = optional(number)
+    records = optional(list(string))
+  }))
+  default = []
 }
 
-################################################################################
-# Load Balancer
-################################################################################
+variable "create" {
+  description = "Whether to create the resources"
+  type        = bool
+  default     = true
+}
+
+####################################################
+# load balancer
+####################################################
 
 variable "access_logs" {
   description = "Map containing access logging configuration for load balancer"
@@ -196,9 +208,9 @@ variable "timeouts" {
   default     = {}
 }
 
-################################################################################
-# Listener(s)
-################################################################################
+####################################################
+# listeners
+####################################################
 
 variable "listeners" {
   description = "List of listener configurations"
@@ -210,6 +222,7 @@ variable "listeners" {
     protocol                 = optional(string)
     ssl_policy               = optional(string)
     tcp_idle_timeout_seconds = optional(number, 60)
+    load_balancer_arn        = optional(string, null)
 
     # default actions
     #----------------------------------------------------------------
@@ -294,9 +307,9 @@ variable "listeners" {
   }
 }
 
-################################################################################
-# Target Group
-################################################################################
+####################################################
+# target group
+####################################################
 
 variable "target_groups" {
   description = "Map of target group configurations to create"
@@ -318,6 +331,7 @@ variable "target_groups" {
     target_id                          = optional(string)
     ip_address_type                    = optional(string, "ipv4")
     vpc_id                             = optional(string)
+    tags                               = optional(map(string))
 
     target = optional(object({
       type              = optional(string, "instance")
@@ -375,9 +389,9 @@ variable "additional_target_group_attachments" {
   default     = {}
 }
 
-################################################################################
-# Security
-################################################################################
+####################################################
+# security
+####################################################
 
 variable "security_group_ids" {
   description = "A list of security group IDs to assign to the LB"
@@ -395,4 +409,23 @@ variable "web_acl_arn" {
   description = "Web Application Firewall (WAF) ARN of the resource to associate with the load balancer"
   type        = string
   default     = null
+}
+
+####################################################
+# service endpoints
+####################################################
+
+variable "endpoint_service" {
+  description = "Map of service endpoint configurations"
+  type = object({
+    enabled                    = optional(bool, false)
+    dualstack                  = optional(bool, false)
+    acceptance_required        = optional(bool, false)
+    allowed_principals         = optional(list(string), null)
+    gateway_load_balancer_arns = optional(list(string), null)
+    network_load_balancer_arns = optional(list(string), null)
+    private_dns_name           = optional(string)
+    tags                       = optional(map(string))
+  })
+  default = {}
 }

@@ -3,11 +3,11 @@
 # network load balancer
 ####################################################
 
-module "spoke1_nlb" {
+module "spoke1_ext_ext-nlb" {
   source    = "../../modules/aws-lb"
   providers = { aws = aws.region1 }
 
-  name               = "${local.spoke1_prefix}nlb"
+  name               = "${local.spoke1_prefix}ext-nlb"
   load_balancer_type = "network"
   vpc_id             = module.spoke1.vpc_id
 
@@ -18,47 +18,47 @@ module "spoke1_nlb" {
   ]
 
   subnet_mapping = [
-    { allocation_id = aws_eip.spoke1_nlb_eip_a.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetA"] },
-    { allocation_id = aws_eip.spoke1_nlb_eip_b.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetB"] },
+    { allocation_id = aws_eip.spoke1_ext_nlb_eip_a.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetA"] },
+    { allocation_id = aws_eip.spoke1_ext_nlb_eip_b.id, subnet_id = module.spoke1.subnet_ids["ExternalNLBSubnetB"] },
   ]
 
   access_logs = {
     enabled = false
-    bucket  = aws_s3_bucket.spoke1_nlb_logs.id
-    prefix  = "${local.spoke1_prefix}nlb"
+    bucket  = aws_s3_bucket.spoke1_ext_nlb_logs.id
+    prefix  = "${local.spoke1_prefix}ext-nlb"
   }
 
   connection_logs = {
     enabled = false
-    bucket  = aws_s3_bucket.spoke1_nlb_logs.id
-    prefix  = "${local.spoke1_prefix}nlb"
+    bucket  = aws_s3_bucket.spoke1_ext_nlb_logs.id
+    prefix  = "${local.spoke1_prefix}ext-nlb"
   }
 
   listeners = [
     {
-      name     = "nlb-fe-80"
+      name     = "ext-nlb-fe-80"
       port     = 80
       protocol = "TCP"
       forward = {
         default      = true
         order        = 10
-        target_group = "nlb-be-80"
+        target_group = "ext-nlb-be-80"
       }
     },
     {
-      name     = "nlb-fe-8080"
+      name     = "ext-nlb-fe-8080"
       port     = 8080
       protocol = "TCP"
       forward = {
         default      = true
-        target_group = "nlb-be-8080"
+        target_group = "ext-nlb-be-8080"
       }
     }
   ]
 
   target_groups = [
     {
-      name         = "nlb-be-80"
+      name         = "ext-nlb-be-80"
       protocol     = "TCP"
       port         = 80
       target       = { type = "instance", id = module.spoke1_vm.instance_id }
@@ -66,7 +66,7 @@ module "spoke1_nlb" {
       health_check = { path = "/healthz" }
     },
     {
-      name         = "nlb-be-8080"
+      name         = "ext-nlb-be-8080"
       protocol     = "TCP"
       port         = 8080
       target       = { type = "instance", id = module.spoke1_vm.instance_id }
@@ -75,6 +75,11 @@ module "spoke1_nlb" {
     }
   ]
 
+  # route53_records = [{
+  #   zone_id = aws_route53_zone.region1.zone_id
+  #   name    = "spoke1-ext-nlb.${data.aws_route53_zone.public.name}"
+  # }]
+
   tags = local.spoke1_tags
 }
 
@@ -82,19 +87,19 @@ module "spoke1_nlb" {
 # elastic ip
 ####################################################
 
-resource "aws_eip" "spoke1_nlb_eip_a" {
+resource "aws_eip" "spoke1_ext_nlb_eip_a" {
   provider = aws.region1
   domain   = "vpc"
   tags = {
-    Name = "${local.spoke1_prefix}-nlb-eip-a"
+    Name = "${local.spoke1_prefix}ext-nlb-eip-a"
   }
 }
 
-resource "aws_eip" "spoke1_nlb_eip_b" {
+resource "aws_eip" "spoke1_ext_nlb_eip_b" {
   provider = aws.region1
   domain   = "vpc"
   tags = {
-    Name = "${local.spoke1_prefix}-nlb-eip-b"
+    Name = "${local.spoke1_prefix}ext-nlb-eip-b"
   }
 }
 
@@ -102,9 +107,9 @@ resource "aws_eip" "spoke1_nlb_eip_b" {
 # s3 bucket (logs)
 ####################################################
 
-resource "aws_s3_bucket" "spoke1_nlb_logs" {
+resource "aws_s3_bucket" "spoke1_ext_nlb_logs" {
   provider      = aws.region1
-  bucket        = replace("${local.spoke1_prefix}nlblogs", "-", "")
+  bucket        = replace("${local.spoke1_prefix}extnlblogs", "-", "")
   force_destroy = true
   tags          = local.spoke1_tags
 }
