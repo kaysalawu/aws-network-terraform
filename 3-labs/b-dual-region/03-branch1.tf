@@ -21,10 +21,8 @@ module "branch1" {
 
   subnets = local.branch1_subnets
 
-  create_internet_gateway = true
-
   nat_config = [
-    { scope = "public", subnet = "UntrustSubnet", },
+    { scope = "public", subnet = "UntrustSubnetA", },
   ]
 
   route_table_config = [
@@ -32,7 +30,7 @@ module "branch1" {
       scope   = "private"
       subnets = [for k, v in local.branch1_subnets : k if v.scope == "private"]
       routes = [
-        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnetA" },
       ]
     },
     {
@@ -103,9 +101,9 @@ module "branch1_dns" {
   interfaces = [
     {
       name               = "${local.branch1_prefix}dns-main"
-      subnet_id          = module.branch1.subnet_ids["MainSubnet"]
+      subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_dns_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      security_group_ids = [module.branch1.ec2_sg_id, ]
     }
   ]
   depends_on = [
@@ -138,9 +136,9 @@ module "branch1_vm" {
   interfaces = [
     {
       name               = "${local.branch1_prefix}vm-main"
-      subnet_id          = module.branch1.subnet_ids["MainSubnet"]
+      subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_vm_addr, ]
-      security_group_ids = [module.branch1.ec2_security_group_id, ]
+      security_group_ids = [module.branch1.ec2_sg_id, ]
     }
   ]
   depends_on = [

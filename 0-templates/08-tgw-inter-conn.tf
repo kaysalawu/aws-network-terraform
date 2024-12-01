@@ -41,6 +41,14 @@ resource "aws_route53_zone_association" "private_zone_vpc_associations_region2" 
 # transit gateway
 ####################################################
 
+resource "time_sleep" "wait_for_tgws" {
+  create_duration = "60s"
+  depends_on = [
+    module.tgw1,
+    module.tgw2,
+  ]
+}
+
 # peering
 #---------------------------------------
 
@@ -57,12 +65,19 @@ resource "aws_ec2_transit_gateway_peering_attachment" "tgw1_tgw2_peering" {
     Name = "tgw1-requester"
     Side = "requester"
   }
+  depends_on = [
+    time_sleep.wait_for_tgws,
+  ]
 }
 
 resource "aws_ec2_transit_gateway_route_table_association" "tgw1_tgw2_association" {
   provider                       = aws.region1
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_peering_attachment.tgw1_tgw2_peering.id
   transit_gateway_route_table_id = module.tgw1.route_table_ids["hub"]
+
+  depends_on = [
+    aws_ec2_transit_gateway_peering_attachment.tgw1_tgw2_peering,
+  ]
 }
 
 # tgw2
@@ -81,18 +96,14 @@ resource "aws_ec2_transit_gateway_route_table_association" "tgw2_tgw1_associatio
   provider                       = aws.region2
   transit_gateway_attachment_id  = aws_ec2_transit_gateway_peering_attachment_accepter.tgw2_tgw1_peering.id
   transit_gateway_route_table_id = module.tgw2.route_table_ids["hub"]
+
+  depends_on = [
+    aws_ec2_transit_gateway_peering_attachment_accepter.tgw2_tgw1_peering,
+  ]
 }
 
 # routes
 #---------------------------------------
-
-resource "time_sleep" "wait_for_tgws" {
-  create_duration = "60s"
-  depends_on = [
-    module.tgw1,
-    module.tgw2,
-  ]
-}
 
 # tgw1
 

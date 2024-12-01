@@ -23,16 +23,14 @@ module "hub2" {
 
   subnets = local.hub2_subnets
 
-  create_internet_gateway = true
-
   dns_resolver_config = [{
     inbound = [
-      { subnet = "DnsInboundSubnet1", ip = local.hub2_dns_in_addr1 },
-      { subnet = "DnsInboundSubnet2", ip = local.hub2_dns_in_addr2 }
+      { subnet = "DnsInboundSubnetA", ip = local.hub2_dns_in_addr1 },
+      { subnet = "DnsInboundSubnetB", ip = local.hub2_dns_in_addr2 }
     ]
     outbound = [
-      { subnet = "DnsOutboundSubnet1", ip = local.hub2_dns_out_addr1 },
-      { subnet = "DnsOutboundSubnet2", ip = local.hub2_dns_out_addr2 }
+      { subnet = "DnsOutboundSubnetA", ip = local.hub2_dns_out_addr1 },
+      { subnet = "DnsOutboundSubnetB", ip = local.hub2_dns_out_addr2 }
     ]
     rules = [
       {
@@ -51,7 +49,7 @@ module "hub2" {
   }]
 
   nat_config = [
-    { scope = "public", subnet = "UntrustSubnet", },
+    { scope = "public", subnet = "UntrustSubnetA", },
   ]
 
   route_table_config = [
@@ -59,7 +57,7 @@ module "hub2" {
       scope   = "private"
       subnets = [for k, v in local.hub2_subnets : k if v.scope == "private"]
       routes = [
-        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnet" },
+        { ipv4_cidr = "0.0.0.0/0", nat_gateway = true, nat_gateway_subnet = "UntrustSubnetA" },
       ]
     },
     {
@@ -125,9 +123,9 @@ module "hub2_vm" {
   interfaces = [
     {
       name               = "${local.hub2_prefix}vm-main"
-      subnet_id          = module.hub2.subnet_ids["MainSubnet"]
+      subnet_id          = module.hub2.subnet_ids["MainSubnetA"]
       private_ips        = [local.hub2_vm_addr, ]
-      security_group_ids = [module.hub2.ec2_security_group_id, ]
+      security_group_ids = [module.hub2.ec2_sg_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.hub2_vm_hostname }
     }
   ]

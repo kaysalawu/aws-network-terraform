@@ -1,16 +1,13 @@
 
 locals {
-  ec2_external_ingress_ports = ["80", "8080", "443", "3000", ]
+  external_ingress_ports = ["80", "8080", "443", "3000", ]
 }
-
-####################################################
-# security group
-####################################################
 
 # TODO: use prefix lists for private prefixes
 
+####################################################
 # bastion
-#--------------------------
+####################################################
 
 # security group
 
@@ -50,8 +47,11 @@ resource "aws_security_group_rule" "bastion_egress_all" {
   security_group_id = aws_security_group.bastion_sg.id
 }
 
+####################################################
 # ec2
-#--------------------------
+####################################################
+
+# security group
 
 resource "aws_security_group" "ec2_sg" {
   name   = "${local.prefix}ec2-sg"
@@ -77,8 +77,8 @@ resource "aws_security_group_rule" "ec2_ingress_internal_all" {
 
 # ingress - external (tcp)
 
-resource "aws_security_group_rule" "ec2_ingress_external_tcp" {
-  for_each          = toset(local.ec2_external_ingress_ports)
+resource "aws_security_group_rule" "ingress_external_tcp" {
+  for_each          = toset(local.external_ingress_ports)
   type              = "ingress"
   from_port         = 0
   to_port           = each.value
@@ -100,8 +100,62 @@ resource "aws_security_group_rule" "ec2_egress_all" {
   security_group_id = aws_security_group.ec2_sg.id
 }
 
+####################################################
+# elb
+####################################################
+
+# security group
+
+resource "aws_security_group" "elb_sg" {
+  name   = "${local.prefix}elb-sg"
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name  = "${local.prefix}elb-sg"
+    Scope = "private"
+  }
+}
+
+# ingress - internal (all)
+
+resource "aws_security_group_rule" "elb_ingress_internal_all" {
+  type              = "ingress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = var.private_prefixes_ipv4
+  ipv6_cidr_blocks  = var.private_prefixes_ipv6
+  security_group_id = aws_security_group.elb_sg.id
+}
+
+# ingress - external (tcp)
+
+resource "aws_security_group_rule" "elb_ingress_external_tcp" {
+  for_each          = toset(local.external_ingress_ports)
+  type              = "ingress"
+  from_port         = 0
+  to_port           = each.value
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.elb_sg.id
+}
+
+# egress - all
+
+resource "aws_security_group_rule" "elb_egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  security_group_id = aws_security_group.elb_sg.id
+}
+
+####################################################
 # nva
-#--------------------------
+####################################################
 
 # security group
 

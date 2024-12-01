@@ -1,0 +1,6 @@
+../../0-templates/01-config.tf
+../../0-templates/03-branch1.tf
+../../0-templates/04-hub1.tf
+../../0-templates/05-spokes-region1.tf
+../../0-templates/06-tgw1.tf
+../../0-templates/07-tgw1-conn.tf

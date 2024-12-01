@@ -3,26 +3,26 @@
 ####################################################
 
 locals {
-  prefix                 = "b"
+  # prefix                 = "b"
   lb_name                = "dual-region"
   enable_onprem_wan_link = false
-  enable_diagnostics     = false
+  enable_dashboards      = false
   enable_ipv6            = false
-  enable_vnet_flow_logs  = false
+  enable_vpc_flow_logs   = false
 
-  hub1_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "hub" }
-  hub2_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "hub" }
-  branch1_tags = { "lab" = local.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch2_tags = { "lab" = local.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch3_tags = { "lab" = local.prefix, "env" = "prod", "nodeType" = "branch" }
-  spoke1_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke2_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke3_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "float" }
-  spoke4_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke5_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke6_tags  = { "lab" = local.prefix, "env" = "prod", "nodeType" = "float" }
-  tgw1_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "tgw" }
-  tgw2_tags    = { "lab" = local.prefix, "env" = "prod", "nodeType" = "tgw" }
+  hub1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  hub2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  branch1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  branch2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  branch3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  spoke1_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke2_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke3_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
+  spoke4_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke5_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke6_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
+  tgw1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
+  tgw2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
 }
 
 resource "random_id" "random" {
@@ -115,12 +115,11 @@ module "common_region1" {
   source                = "../../modules/common"
   providers             = { aws = aws.region1 }
   env                   = "common"
-  prefix                = local.prefix
+  prefix                = var.prefix
   region                = local.region1
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
   public_key_path       = var.public_key_path
-  private_key_path      = var.private_key_path
   tags                  = {}
 }
 
@@ -128,12 +127,11 @@ module "common_region2" {
   source                = "../../modules/common"
   providers             = { aws = aws.region2 }
   env                   = "common"
-  prefix                = local.prefix
+  prefix                = var.prefix
   region                = local.region2
   private_prefixes_ipv4 = local.private_prefixes_ipv4
   private_prefixes_ipv6 = local.private_prefixes_ipv6
   public_key_path       = var.public_key_path
-  private_key_path      = var.private_key_path
   tags                  = {}
 }
 

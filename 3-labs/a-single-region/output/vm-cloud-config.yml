@@ -296,7 +296,7 @@ write_files:
     owner: root
     permissions: 0744
     content: |
-      [{"host":"branch1Vm.cloudtuple.org","ipv4":"10.10.0.5","ipv6":"2000:abc:10::5","name":"branch1","probe":true},{"host":"hub1Vm.eu.c.cloudtuple.org","ipv4":"10.11.0.5","ipv6":"2000:abc:11::5","name":"hub1   ","probe":true},{"host":"spoke1Vm.eu.c.cloudtuple.org","ipv4":"10.1.0.5","ipv6":"2000:abc:1::5","name":"spoke1 ","probe":true},{"host":"spoke2Vm.eu.c.cloudtuple.org","ipv4":"10.2.0.5","ipv6":"2000:abc:2::5","name":"spoke2 ","probe":true},{"host":"branch3Vm.cloudtuple.org","ipv4":"10.30.0.5","ipv6":"2000:abc:30::5","name":"branch3","probe":true},{"host":"hub2Vm.us.c.cloudtuple.org","ipv4":"10.22.0.5","ipv6":"2000:abc:22::5","name":"hub2   ","probe":true},{"host":"spoke4Vm.us.c.cloudtuple.org","ipv4":"10.4.0.5","ipv6":"2000:abc:4::5","name":"spoke4 ","probe":true},{"host":"spoke5Vm.us.c.cloudtuple.org","ipv4":"10.5.0.5","ipv6":"2000:abc:5::5","name":"spoke5 ","probe":true},{"host":"icanhazip.com","name":"internet"}]
+      [{"host":"branch1Vm.cloudtuple.org","ipv4":"10.10.0.5","ipv6":"2000:abc:10::5","name":"branch1","probe":true},{"host":"hub1Vm.eu.c.cloudtuple.org","ipv4":"10.11.0.5","ipv6":"2000:abc:11::5","name":"hub1   ","probe":true},{"host":"spoke3pls.eu.c.cloudtuple.org","name":"hub1-spoke3-pep","ping":false,"probe":true},{"host":"spoke1Vm.eu.c.cloudtuple.org","ipv4":"10.1.0.5","ipv6":"2000:abc:1::5","name":"spoke1 ","probe":true},{"host":"spoke2Vm.eu.c.cloudtuple.org","ipv4":"10.2.0.5","ipv6":"2000:abc:2::5","name":"spoke2 ","probe":true},{"host":"icanhazip.com","name":"internet"}]
 
 runcmd:
   - bash /var/lib/aws/init/startup.sh

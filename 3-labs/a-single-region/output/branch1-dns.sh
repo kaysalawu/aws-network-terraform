@@ -62,11 +62,11 @@ server:
 
 forward-zone:
         name: "eu.c.cloudtuple.org."
-        forward-addr: 10.11.6.4
+        forward-addr: 10.11.10.4
 
 forward-zone:
         name: "us.c.cloudtuple.org."
-        forward-addr: 10.22.6.4
+        forward-addr: 10.22.10.4
 
 forward-zone:
         name: "."

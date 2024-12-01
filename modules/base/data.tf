@@ -26,4 +26,7 @@ data "aws_route53_zone" "private" {
   count        = var.private_dns_config.zone_name != null ? 1 : 0
   name         = var.private_dns_config.zone_name
   private_zone = true
+  depends_on = [
+    aws_vpc.this
+  ]
 }

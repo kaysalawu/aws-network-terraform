@@ -248,7 +248,7 @@ variable "route_table_config" {
 variable "create_internet_gateway" {
   description = "Should be true to create an internet gateway"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "dns_resolver_config" {
