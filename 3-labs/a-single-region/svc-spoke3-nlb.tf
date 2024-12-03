@@ -111,6 +111,24 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1" {
   ]
 }
 
+# hub1
+## dummy for testing multiple endpoint associations to same service
+
+resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_dummy" {
+  provider          = aws.region1
+  vpc_id            = module.hub1.vpc_id
+  service_name      = module.spoke3_int_nlb.endpoint_service_name
+  auto_accept       = true
+  vpc_endpoint_type = "Interface"
+  subnet_ids = [
+    module.hub1.subnet_ids["EndpointSubnetA"],
+    module.hub1.subnet_ids["EndpointSubnetB"],
+  ]
+  security_group_ids = [
+    module.hub1.ec2_sg_id
+  ]
+}
+
 ####################################################
 # dns
 ####################################################
