@@ -107,27 +107,57 @@ locals {
   }
 
   hub1_features = {
-    dns_forwarding_rules = [
-      {
-        domain = local.onprem_domain
-        target_ips = [
-          local.branch1_dns_addr,
-          local.branch3_dns_addr,
-        ]
-      },
-    ]
+    dns_resolver_config = [{
+      inbound = [
+        { subnet = "DnsInboundSubnetA", ip = local.hub1_dns_in_addr1 },
+        { subnet = "DnsInboundSubnetB", ip = local.hub1_dns_in_addr2 }
+      ]
+      outbound = [
+        { subnet = "DnsOutboundSubnetA", ip = local.hub1_dns_out_addr1 },
+        { subnet = "DnsOutboundSubnetB", ip = local.hub1_dns_out_addr2 }
+      ]
+      rules = [
+        {
+          domain = local.onprem_domain
+          target_ips = [
+            local.branch1_dns_addr,
+            local.branch3_dns_addr,
+          ]
+        },
+      ]
+      additional_associated_vpc_ids = [
+        module.spoke1.vpc_id,
+        module.spoke2.vpc_id,
+        module.spoke3.vpc_id,
+      ]
+    }]
   }
 
   hub2_features = {
-    dns_forwarding_rules = [
-      {
-        domain = local.onprem_domain
-        target_ips = [
-          local.branch3_dns_addr,
-          local.branch1_dns_addr,
-        ]
-      },
-    ]
+    dns_resolver_config = [{
+      inbound = [
+        { subnet = "DnsInboundSubnetA", ip = local.hub2_dns_in_addr1 },
+        { subnet = "DnsInboundSubnetB", ip = local.hub2_dns_in_addr2 }
+      ]
+      outbound = [
+        { subnet = "DnsOutboundSubnetA", ip = local.hub2_dns_out_addr1 },
+        { subnet = "DnsOutboundSubnetB", ip = local.hub2_dns_out_addr2 }
+      ]
+      rules = [
+        {
+          domain = local.onprem_domain
+          target_ips = [
+            local.branch3_dns_addr,
+            local.branch1_dns_addr,
+          ]
+        },
+      ]
+      additional_associated_vpc_ids = [
+        module.spoke4.vpc_id,
+        module.spoke5.vpc_id,
+        module.spoke6.vpc_id,
+      ]
+    }]
   }
 }
 
@@ -177,14 +207,14 @@ locals {
   vm_script_targets_region1 = [
     { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
     { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
-    # { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
+    { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
     { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
     { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
   ]
   vm_script_targets_region2 = [
     { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
     { name = "hub2   ", host = local.hub2_vm_fqdn, ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
-    # { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
+    { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
     { name = "spoke4 ", host = local.spoke4_vm_fqdn, ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
     { name = "spoke5 ", host = local.spoke5_vm_fqdn, ipv4 = local.spoke5_vm_addr, ipv6 = local.spoke5_vm_addr_v6, probe = true },
   ]

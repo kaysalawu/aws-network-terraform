@@ -20,7 +20,7 @@ No requirements.
 | <a name="input_source_dest_check"></a> [source\_dest\_check](#input\_source\_dest\_check) | enable/disable source/dest check | `bool` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | tags for all hub resources | `map(any)` | `{}` | no |
 | <a name="input_user_data"></a> [user\_data](#input\_user\_data) | user data for the ec2 instance | `string` | `null` | no |
-| <a name="input_vpc_sg_ids"></a> [vpc\_security\_group\_ids](#input\_vpc\_security\_group\_ids) | vpc security group ids | `list(string)` | `[]` | no |
+| <a name="input_vpc_security_group_ids"></a> [vpc\_sg\_ids](#input\_vpc\_sg\_ids) | vpc security group ids | `list(string)` | `[]` | no |
 
 ## Outputs
 

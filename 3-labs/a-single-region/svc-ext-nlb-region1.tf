@@ -14,7 +14,7 @@ module "spoke1_ext_nlb" {
   dns_record_client_routing_policy = "availability_zone_affinity"
 
   security_group_ids = [
-    module.spoke1.elb_sg_id
+    module.spoke1.elb_security_group_id
   ]
 
   subnet_mapping = [

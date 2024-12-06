@@ -1,6 +1,6 @@
-# Virtual WAN - Dual Region <!-- omit from toc -->
+# Transit Gateway Hub and Spoke - Single Region <!-- omit from toc -->
 
-## Lab: Vwan22 <!-- omit from toc -->
+## Lab: A <!-- omit from toc -->
 
 Contents
 
@@ -22,17 +22,17 @@ Contents
 
 ## Overview
 
-This lab deploys a dual-region transit gateway hub and spoke topology. The lab demonstrates multi-region traffic routing patterns, [hybrid DNS](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-dns-resolution-for-hybrid-networks-in-a-single-account-aws-environment.html) resolution, and [PrivateLink](https://docs.aws.amazon.com/vpc/latest/userguide/endpoint-services-overview.html) access to IaaS and PaaS services.
+This lab deploys a single-region transit gateway hub and spoke topology. The lab demonstrates traffic routing patterns, [hybrid DNS](https://docs.aws.amazon.com/prescriptive-guidance/latest/patterns/set-up-dns-resolution-for-hybrid-networks-in-a-single-account-aws-environment.html) resolution, and [PrivateLink](https://docs.aws.amazon.com/vpc/latest/userguide/endpoint-services-overview.html) access to IaaS and PaaS services.
 
 <img src="./images/architecture.png" alt="Dual region hub and spoke" width="500">
 <p>
 
-The Virtual Private Cloud (VPC) networks, ***hub1*** and ***hub2***, are central hub networks that host shared services for all spokes in a region. Shared services include private DNS, firewall, tooling and other resources. ***hub1*** and ***hub2*** connect to their respective transit gateways, ***tgw1*** and ***tgw2***.
+The Virtual Private Cloud (VPC) network, ***hub1*** is a central hub network that hosts shared services for all spokes in the region. Shared services include private DNS, firewall, tooling and other resources. ***hub1***  connects to a transit gateway, ***tgw1*** which provides transit connectivity for on-premises and cross-region traffic.
 
-***Spoke1*** and ***spoke2*** connect to ***tgw1*** using [transit gateway VPC attachments](https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html). Similarly, ***Spoke4*** and ***spoke5*** connect to ***tgw2*** using attachments. ***Spoke3*** and ***spoke6*** are not connected to the transit gateways but are reachable via [PrivateLink endpoints](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#concepts-vpc-endpoints) in the hubs.
+***Spoke1*** and ***spoke2*** connect to ***tgw1*** using [transit gateway VPC attachments](https://docs.aws.amazon.com/vpc/latest/tgw/tgw-vpc-attachments.html). ***Spoke3*** is not connected to the transit gateway but is reachable via a [PrivateLink endpoint](https://docs.aws.amazon.com/vpc/latest/privatelink/concepts.html#concepts-vpc-endpoints) in the hub.
 
 
-***Branch1*** and ***branch3*** are on-premises networks simulated using VPCs. Multi-NIC Linux NVA appliances connect to the transit gateways using IPsec VPN connections with dynamic (BGP) routing. The branches connect to each other via inter-regional transit gateway peering.
+***Branch1*** is an on-premises network simulated using a VPC. A multi-NIC Linux NVA appliance connects to the transit gateway using IPsec VPN connections with dynamic (BGP) routing. The branches connect to each other via inter-regional transit gateway peering.
 
 ## Prerequisites
 
@@ -220,7 +220,7 @@ The `Hostname`, `server-ipv4` and `server-ipv6` fields identify the actual web s
 ### 4. On-premises Routes
 
 **4.1** Login to on-premises EC2 instance `a-branch1-nva` via the [serial console](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/connect-to-serial-console.html):
-  - username = ***azureuser***
+  - username = ***ubuntu***
   - password = ***Password123***
 
 **4.2.** Enter the VTY shell for the FRRouting daemon.
@@ -234,7 +234,7 @@ sudo vtysh
 <summary>Sample output</summary>
 
 ```sh
-azureuser@branch1Nva:~$ sudo vtysh
+a-branch1-nva:~$ sudo vtysh
 
 Hello, this is FRRouting (version 7.2.1).
 Copyright 1996-2005 Kunihiro Ishiguro, et al.

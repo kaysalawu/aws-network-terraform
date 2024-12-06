@@ -53,4 +53,5 @@ variable "ipam_tier" {
 
 variable "public_key_path" {
   description = "path to public key for ec2 SSH"
+  default     = null
 }

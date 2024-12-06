@@ -78,7 +78,7 @@ Note that this example may create resources which cost money. Run `terraform des
 | <a name="output_listeners"></a> [listeners](#output\_listeners) | Map of listeners created and their attributes |
 | <a name="output_route53_records"></a> [route53\_records](#output\_route53\_records) | The Route53 records created and attached to the load balancer |
 | <a name="output_security_group_arn"></a> [security\_group\_arn](#output\_security\_group\_arn) | Amazon Resource Name (ARN) of the security group |
-| <a name="output_sg_id"></a> [security\_group\_id](#output\_security\_group\_id) | ID of the security group |
+| <a name="output_security_group_id"></a> [security\_group\_id](#output\_security\_group\_id) | ID of the security group |
 | <a name="output_target_groups"></a> [target\_groups](#output\_target\_groups) | Map of target groups created and their attributes |
 | <a name="output_zone_id"></a> [zone\_id](#output\_zone\_id) | The zone\_id of the load balancer to assist with creating DNS records |
 <!-- END_TF_DOCS -->

@@ -21,7 +21,7 @@ module "hub1_int_nlb" {
   dns_record_client_routing_policy = "availability_zone_affinity"
 
   security_group_ids = [
-    module.hub1.elb_sg_id
+    module.hub1.elb_security_group_id
   ]
 
   subnet_mapping = [
@@ -111,7 +111,7 @@ resource "aws_vpc_endpoint" "branch1_int_nlb_hub1" {
     module.branch1.subnet_ids["EndpointSubnetB"],
   ]
   security_group_ids = [
-    module.branch1.ec2_sg_id
+    module.branch1.ec2_security_group_id
   ]
   tags = merge(local.branch1_tags, {
     "Name" = "${local.branch1_prefix}int-nlb-hub1"

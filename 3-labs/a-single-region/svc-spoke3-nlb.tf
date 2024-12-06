@@ -16,7 +16,7 @@ module "spoke3_int_nlb" {
   dns_record_client_routing_policy = "availability_zone_affinity"
 
   security_group_ids = [
-    module.spoke3.elb_sg_id
+    module.spoke3.elb_security_group_id
   ]
 
   subnet_mapping = [
@@ -107,7 +107,7 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1" {
     module.hub1.subnet_ids["EndpointSubnetB"],
   ]
   security_group_ids = [
-    module.hub1.ec2_sg_id
+    module.hub1.ec2_security_group_id
   ]
 }
 
@@ -125,7 +125,7 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_dummy" {
     module.hub1.subnet_ids["EndpointSubnetB"],
   ]
   security_group_ids = [
-    module.hub1.ec2_sg_id
+    module.hub1.ec2_security_group_id
   ]
 }
 

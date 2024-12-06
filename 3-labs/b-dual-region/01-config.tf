@@ -50,9 +50,9 @@ locals {
   vti_range6 = "10.10.10.24/30"
   vti_range7 = "10.10.10.28/30"
 
-  domain_name      = "cloudtuple.org"
+  domain_name      = "corp"
   onprem_domain    = local.domain_name
-  cloud_dns_zone   = "c.${local.domain_name}"
+  cloud_dns_zone   = "aws.${local.domain_name}"
   region1_dns_zone = "${local.region1_code}.${local.cloud_dns_zone}"
   region2_dns_zone = "${local.region2_code}.${local.cloud_dns_zone}"
   amazon_dns_ipv4  = "169.254.169.253"

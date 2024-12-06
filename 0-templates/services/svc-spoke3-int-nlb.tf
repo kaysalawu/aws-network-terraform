@@ -16,7 +16,7 @@ module "spoke3_int_nlb" {
   dns_record_client_routing_policy = "availability_zone_affinity"
 
   security_group_ids = [
-    module.spoke3.elb_sg_id
+    module.spoke3.elb_security_group_id
   ]
 
   subnet_mapping = [
@@ -38,29 +38,29 @@ module "spoke3_int_nlb" {
 
   listeners = [
     {
-      name     = "int-nlb-fe-80"
+      name     = "${local.spoke3_prefix}int-nlb-fe-80"
       port     = 80
       protocol = "TCP"
       forward = {
         default      = true
         order        = 10
-        target_group = "int-nlb-be-80"
+        target_group = "${local.spoke3_prefix}int-nlb-be-80"
       }
     },
     {
-      name     = "int-nlb-fe-8080"
+      name     = "${local.spoke3_prefix}int-nlb-fe-8080"
       port     = 8080
       protocol = "TCP"
       forward = {
         default      = true
-        target_group = "int-nlb-be-8080"
+        target_group = "${local.spoke3_prefix}int-nlb-be-8080"
       }
     }
   ]
 
   target_groups = [
     {
-      name         = "int-nlb-be-80"
+      name         = "${local.spoke3_prefix}int-nlb-be-80"
       protocol     = "TCP"
       port         = 80
       target       = { type = "instance", id = module.spoke3_vm.instance_id }
@@ -68,7 +68,7 @@ module "spoke3_int_nlb" {
       health_check = { path = "/healthz" }
     },
     {
-      name         = "int-nlb-be-8080"
+      name         = "${local.spoke3_prefix}int-nlb-be-8080"
       protocol     = "TCP"
       port         = 8080
       target       = { type = "instance", id = module.spoke3_vm.instance_id }
@@ -78,8 +78,7 @@ module "spoke3_int_nlb" {
   ]
 
   endpoint_service = {
-    enabled          = true
-    private_dns_name = "${local.spoke3_prefix}int-nlb.${data.aws_route53_zone.public.name}"
+    enabled = true
   }
 
   route53_records = [{
@@ -107,25 +106,11 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1" {
     module.hub1.subnet_ids["EndpointSubnetB"],
   ]
   security_group_ids = [
-    module.hub1.ec2_sg_id
+    module.hub1.ec2_security_group_id
   ]
-}
-
-# hub1 (extra)
-
-resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_extra" {
-  provider          = aws.region1
-  vpc_id            = module.hub1.vpc_id
-  service_name      = module.spoke3_int_nlb.endpoint_service_name
-  auto_accept       = true
-  vpc_endpoint_type = "Interface"
-  subnet_ids = [
-    module.hub1.subnet_ids["EndpointSubnetA"],
-    module.hub1.subnet_ids["EndpointSubnetB"],
-  ]
-  security_group_ids = [
-    module.hub1.ec2_sg_id
-  ]
+  tags = merge(local.spoke3_tags, {
+    "Name" = "${local.spoke3_prefix}int-nlb-hub1"
+  })
 }
 
 ####################################################

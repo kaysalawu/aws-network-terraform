@@ -366,7 +366,10 @@ resource "aws_route53_resolver_rule_association" "additional" {
 #--------------------------
 
 locals {
-  bastion_startup = templatefile("${path.module}/scripts/bastion.sh", {})
+  bastion_startup = templatefile("${path.module}/scripts/bastion.sh", {
+    USERNAME = "ubuntu"
+    PASSWORD = "Password123"
+  })
 }
 
 module "bastion" {

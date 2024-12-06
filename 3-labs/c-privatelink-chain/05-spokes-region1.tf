@@ -80,7 +80,7 @@ module "spoke1_vm" {
       name               = "${local.spoke1_prefix}vm-main"
       subnet_id          = module.spoke1.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke1_vm_addr, ]
-      security_group_ids = [module.spoke1.ec2_sg_id, ]
+      security_group_ids = [module.spoke1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region1_dns_zone, name = local.spoke1_vm_hostname }
     }
   ]

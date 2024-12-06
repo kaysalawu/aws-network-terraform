@@ -163,18 +163,18 @@ conn %default
     esp=aes256-sha1!
 
 conn tun1
-    left=10.10.2.9
-    leftid=54.228.23.128
-    right=52.16.38.78
-    rightid=52.16.38.78
+    left=10.30.2.9
+    leftid=3.142.168.65
+    right=3.130.14.122
+    rightid=3.130.14.122
     auto=start
     mark=100
     leftupdown="/etc/ipsec.d/ipsec-vti.sh"
 conn tun2
-    left=10.10.2.9
-    leftid=54.228.23.128
-    right=54.155.53.8
-    rightid=54.155.53.8
+    left=10.30.2.9
+    leftid=3.142.168.65
+    right=3.146.237.151
+    rightid=3.146.237.151
     auto=start
     mark=101
     leftupdown="/etc/ipsec.d/ipsec-vti.sh"
@@ -184,8 +184,8 @@ conn tun2
 EOF
 
 tee /etc/ipsec.secrets <<'EOF'
-10.10.2.9 52.16.38.78 : PSK "changeme"
-10.10.2.9 54.155.53.8 : PSK "changeme"
+10.30.2.9 3.130.14.122 : PSK "changeme"
+10.30.2.9 3.146.237.151 : PSK "changeme"
 
 EOF
 
@@ -203,13 +203,13 @@ PLUTO_MARK_IN_ARR=(${PLUTO_MARK_IN//// })
 case "$PLUTO_CONNECTION" in
   tun1)
     VTI_INTERFACE=tun1
-    VTI_LOCALADDR=169.254.96.34
-    VTI_REMOTEADDR=169.254.96.33
+    VTI_LOCALADDR=169.254.98.138
+    VTI_REMOTEADDR=169.254.98.137
     ;;
   tun2)
     VTI_INTERFACE=tun2
-    VTI_LOCALADDR=169.254.163.86
-    VTI_REMOTEADDR=169.254.163.85
+    VTI_LOCALADDR=169.254.69.66
+    VTI_REMOTEADDR=169.254.69.65
     ;;
 esac
 
@@ -281,15 +281,15 @@ ip prefix-list BLOCK_AWS_PREFIXES permit 0.0.0.0/0 le 32
 ! Interface
 !-----------------------------------------
 interface lo
-  ip address 192.168.10.10/32
+  ip address 192.168.30.30/32
 !
 !-----------------------------------------
 ! Static Routes
 !-----------------------------------------
-ip route 0.0.0.0/0 10.10.2.1
-ip route 169.254.96.34/32 tun1
-ip route 169.254.163.86/32 tun2
-ip route 10.10.0.0/24 10.10.2.1
+ip route 0.0.0.0/0 10.30.2.1
+ip route 169.254.98.138/32 tun1
+ip route 169.254.69.66/32 tun2
+ip route 10.30.0.0/24 10.30.2.1
 !
 !-----------------------------------------
 ! Route Maps
@@ -300,15 +300,15 @@ ip route 10.10.0.0/24 10.10.2.1
 !-----------------------------------------
 ! BGP
 !-----------------------------------------
-router bgp 65001
-bgp router-id 192.168.10.10
-neighbor 169.254.96.33 remote-as 65011
-neighbor 169.254.163.85 remote-as 65011
+router bgp 65003
+bgp router-id 192.168.30.30
+neighbor 169.254.98.137 remote-as 65022
+neighbor 169.254.69.65 remote-as 65022
 !
 address-family ipv4 unicast
-  network 10.10.0.0/24
-  neighbor 169.254.96.33 soft-reconfiguration inbound
-  neighbor 169.254.163.85 soft-reconfiguration inbound
+  network 10.30.0.0/24
+  neighbor 169.254.98.137 soft-reconfiguration inbound
+  neighbor 169.254.69.65 soft-reconfiguration inbound
 exit-address-family
 !
 line vty
