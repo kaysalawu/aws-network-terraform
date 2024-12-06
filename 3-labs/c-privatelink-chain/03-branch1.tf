@@ -21,6 +21,10 @@ module "branch1" {
 
   subnets = local.branch1_subnets
 
+  private_dns_config = {
+    zone_name = aws_route53_zone.region1.name
+  }
+
   nat_config = [
     { scope = "public", subnet = "UntrustSubnetA", },
   ]
@@ -43,12 +47,6 @@ module "branch1" {
     },
   ]
 
-  dhcp_options = {
-    enable              = true
-    domain_name         = local.domain_name
-    domain_name_servers = [local.branch1_dns_addr, ]
-  }
-
   depends_on = [
     module.common_region1,
   ]
@@ -57,64 +55,7 @@ module "branch1" {
 resource "time_sleep" "branch1" {
   create_duration = "30s"
   depends_on = [
-    module.branch1
-  ]
-}
-
-####################################################
-# dns
-####################################################
-
-locals {
-  branch1_unbound_startup = templatefile("../../scripts/unbound/unbound.sh", local.branch1_dns_vars)
-  branch1_dns_vars = {
-    HOSTNAME             = "${local.branch1_prefix}dns"
-    ONPREM_LOCAL_RECORDS = local.onprem_local_records
-    REDIRECTED_HOSTS     = local.onprem_redirected_hosts
-    FORWARD_ZONES        = local.branch1_forward_zones
-    TARGETS              = local.vm_script_targets
-    ACCESS_CONTROL_PREFIXES = concat(
-      local.private_prefixes_ipv4,
-      ["127.0.0.0/8", "35.199.192.0/19", "fd00::/8", ]
-    )
-    USERNAME = local.username
-    PASSWORD = local.password
-  }
-  branch1_forward_zones = [
-    { zone = "${local.region1_dns_zone}.", targets = [local.hub1_dns_in_addr1, ] },
-    { zone = "${local.region2_dns_zone}.", targets = [local.hub2_dns_in_addr1, ] },
-    { zone = ".", targets = [local.amazon_dns_ipv4, ] },
-  ]
-}
-
-module "branch1_dns" {
-  source               = "../../modules/ec2"
-  providers            = { aws = aws.region1 }
-  name                 = "${local.branch1_prefix}dns"
-  availability_zone    = "${local.branch1_region}a"
-  iam_instance_profile = module.common_region1.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu_region1.id
-  key_name             = module.common_region1.key_pair_name
-  user_data            = base64encode(local.branch1_unbound_startup)
-  tags                 = local.branch1_tags
-
-  interfaces = [
-    {
-      name               = "${local.branch1_prefix}dns-main"
-      subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
-      private_ips        = [local.branch1_dns_addr, ]
-      security_group_ids = [module.branch1.ec2_sg_id, ]
-    }
-  ]
-  depends_on = [
-    time_sleep.branch1,
-  ]
-}
-
-resource "time_sleep" "branch1_dns" {
-  create_duration = "120s"
-  depends_on = [
-    module.branch1_dns,
+    module.branch1,
   ]
 }
 
@@ -139,20 +80,21 @@ module "branch1_vm" {
       subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_vm_addr, ]
       security_group_ids = [module.branch1.ec2_sg_id, ]
+      dns_config         = { zone_name = local.region1_dns_zone, name = local.branch1_vm_hostname }
+      create_eip         = true
     }
   ]
   depends_on = [
-    time_sleep.branch1_dns,
+    time_sleep.branch1,
   ]
 }
 
 ####################################################
 # output files
-####################################################,
+####################################################
 
 locals {
   branch1_files = {
-    "output/branch1-dns.sh" = local.branch1_unbound_startup
   }
 }
 

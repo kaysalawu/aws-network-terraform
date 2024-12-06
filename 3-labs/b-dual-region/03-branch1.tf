@@ -57,7 +57,7 @@ module "branch1" {
 resource "time_sleep" "branch1" {
   create_duration = "30s"
   depends_on = [
-    module.branch1
+    module.branch1,
   ]
 }
 
@@ -148,7 +148,7 @@ module "branch1_vm" {
 
 ####################################################
 # output files
-####################################################,
+####################################################
 
 locals {
   branch1_files = {

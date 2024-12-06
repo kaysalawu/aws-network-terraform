@@ -32,15 +32,8 @@ module "hub1" {
       { subnet = "DnsOutboundSubnetA", ip = local.hub1_dns_out_addr1 },
       { subnet = "DnsOutboundSubnetB", ip = local.hub1_dns_out_addr2 }
     ]
-    rules = [
-      {
-        domain = local.onprem_domain
-        target_ips = [
-          local.branch1_dns_addr,
-          local.branch3_dns_addr,
-        ]
-      },
-    ]
+    rules = local.hub1_features.dns_forwarding_rules
+
     additional_associated_vpc_ids = [
       module.spoke1.vpc_id,
       module.spoke2.vpc_id,

@@ -83,6 +83,17 @@ locals {
   regions = {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
   }
+  hub1_features = {
+    dns_forwarding_rules = [
+      {
+        domain = local.onprem_domain
+        target_ips = [
+          local.branch1_dns_addr,
+          local.branch3_dns_addr,
+        ]
+      },
+    ]
+  }
 }
 
 ####################################################

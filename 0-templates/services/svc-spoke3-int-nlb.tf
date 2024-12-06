@@ -111,10 +111,9 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1" {
   ]
 }
 
-# hub1
-## dummy for testing multiple endpoint associations to same service
+# hub1 (extra)
 
-resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_dummy" {
+resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_extra" {
   provider          = aws.region1
   vpc_id            = module.hub1.vpc_id
   service_name      = module.spoke3_int_nlb.endpoint_service_name
@@ -138,7 +137,7 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_dummy" {
 resource "aws_route53_record" "spoke3_int_nlb" {
   provider = aws.region1
   zone_id  = aws_route53_zone.region1.zone_id
-  name     = local.hub1_int_nlb_hostname
+  name     = local.spoke3_int_nlb_hostname
   type     = "A"
   ttl      = "60"
   records = [

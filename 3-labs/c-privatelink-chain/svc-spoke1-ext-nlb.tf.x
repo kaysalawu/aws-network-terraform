@@ -3,7 +3,7 @@
 # network load balancer
 ####################################################
 
-module "spoke1_ext_ext-nlb" {
+module "spoke1_ext_nlb" {
   source    = "../../modules/aws-lb"
   providers = { aws = aws.region1 }
 
