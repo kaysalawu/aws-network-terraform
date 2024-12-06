@@ -57,7 +57,7 @@ module "branch1" {
 resource "time_sleep" "branch1" {
   create_duration = "30s"
   depends_on = [
-    module.branch1
+    module.branch1,
   ]
 }
 
@@ -103,7 +103,7 @@ module "branch1_dns" {
       name               = "${local.branch1_prefix}dns-main"
       subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_dns_addr, ]
-      security_group_ids = [module.branch1.ec2_sg_id, ]
+      security_group_ids = [module.branch1.ec2_security_group_id, ]
     }
   ]
   depends_on = [
@@ -138,7 +138,7 @@ module "branch1_vm" {
       name               = "${local.branch1_prefix}vm-main"
       subnet_id          = module.branch1.subnet_ids["MainSubnetA"]
       private_ips        = [local.branch1_vm_addr, ]
-      security_group_ids = [module.branch1.ec2_sg_id, ]
+      security_group_ids = [module.branch1.ec2_security_group_id, ]
     }
   ]
   depends_on = [
@@ -148,7 +148,7 @@ module "branch1_vm" {
 
 ####################################################
 # output files
-####################################################,
+####################################################
 
 locals {
   branch1_files = {

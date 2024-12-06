@@ -27,16 +27,10 @@ module "spoke4" {
     zone_name = aws_route53_zone.region2.name
   }
 
+  create_internet_gateway = false
+
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke4_subnets : k if v.scope == "private"] },
-    {
-      scope   = "public"
-      subnets = [for k, v in local.spoke4_subnets : k if v.scope == "public"]
-      routes = [
-        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
-        { ipv6_cidr = "::/0", internet_gateway = true },
-      ]
-    },
   ]
 
   depends_on = [
@@ -70,7 +64,7 @@ module "spoke4_vm" {
       name               = "${local.spoke4_prefix}vm-main"
       subnet_id          = module.spoke4.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke4_vm_addr, ]
-      security_group_ids = [module.spoke4.ec2_sg_id, ]
+      security_group_ids = [module.spoke4.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke4_vm_hostname }
     }
   ]
@@ -107,16 +101,10 @@ module "spoke5" {
     zone_name = aws_route53_zone.region2.name
   }
 
+  create_internet_gateway = false
+
   route_table_config = [
     { scope = "private", subnets = [for k, v in local.spoke5_subnets : k if v.scope == "private"] },
-    {
-      scope   = "public"
-      subnets = [for k, v in local.spoke5_subnets : k if v.scope == "public"]
-      routes = [
-        { ipv4_cidr = "0.0.0.0/0", internet_gateway = true },
-        { ipv6_cidr = "::/0", internet_gateway = true },
-      ]
-    },
   ]
 
   depends_on = [
@@ -150,7 +138,7 @@ module "spoke5_vm" {
       name               = "${local.spoke5_prefix}vm-main"
       subnet_id          = module.spoke5.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke5_vm_addr, ]
-      security_group_ids = [module.spoke5.ec2_sg_id, ]
+      security_group_ids = [module.spoke5.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke5_vm_hostname }
     }
   ]
@@ -240,7 +228,7 @@ module "spoke6_vm" {
       name               = "${local.spoke6_prefix}vm-main"
       subnet_id          = module.spoke6.subnet_ids["MainSubnetA"]
       private_ips        = [local.spoke6_vm_addr, ]
-      security_group_ids = [module.spoke6.ec2_sg_id, ]
+      security_group_ids = [module.spoke6.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.spoke6_vm_hostname }
     }
   ]

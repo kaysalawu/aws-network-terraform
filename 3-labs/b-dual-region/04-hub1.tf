@@ -21,32 +21,8 @@ module "hub1" {
   # use_ipv6_ipam_pool = false
   # ipv6_ipam_pool_id  = module.common_region1.ipv6_ipam_pool_id
 
-  subnets = local.hub1_subnets
-
-  dns_resolver_config = [{
-    inbound = [
-      { subnet = "DnsInboundSubnetA", ip = local.hub1_dns_in_addr1 },
-      { subnet = "DnsInboundSubnetB", ip = local.hub1_dns_in_addr2 }
-    ]
-    outbound = [
-      { subnet = "DnsOutboundSubnetA", ip = local.hub1_dns_out_addr1 },
-      { subnet = "DnsOutboundSubnetB", ip = local.hub1_dns_out_addr2 }
-    ]
-    rules = [
-      {
-        domain = local.onprem_domain
-        target_ips = [
-          local.branch1_dns_addr,
-          local.branch3_dns_addr,
-        ]
-      },
-    ]
-    additional_associated_vpc_ids = [
-      module.spoke1.vpc_id,
-      module.spoke2.vpc_id,
-      module.spoke3.vpc_id,
-    ]
-  }]
+  subnets             = local.hub1_subnets
+  dns_resolver_config = local.hub1_features.dns_resolver_config
 
   nat_config = [
     { scope = "public", subnet = "UntrustSubnetA", },
@@ -75,8 +51,6 @@ module "hub1" {
     key_name             = module.common_region1.key_pair_name
     private_ips          = [local.hub1_bastion_addr, ]
     iam_instance_profile = module.common_region1.iam_instance_profile.name
-    public_dns_zone_name = local.domain_name
-    dns_prefix           = "bastion.hub1.${local.region1_code}"
   }
 
   depends_on = [
@@ -125,7 +99,7 @@ module "hub1_vm" {
       name               = "${local.hub1_prefix}vm-main"
       subnet_id          = module.hub1.subnet_ids["MainSubnetA"]
       private_ips        = [local.hub1_vm_addr, ]
-      security_group_ids = [module.hub1.ec2_sg_id, ]
+      security_group_ids = [module.hub1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region1_dns_zone, name = local.hub1_vm_hostname }
     }
   ]
@@ -147,4 +121,11 @@ resource "local_file" "hub1_files" {
   for_each = local.hub1_files
   filename = each.key
   content  = each.value
+}
+
+output "bastion_public_ip" {
+  value = module.hub1.bastion_public_ip
+  depends_on = [
+    module.hub1,
+  ]
 }

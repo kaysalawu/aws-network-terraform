@@ -16,7 +16,7 @@ module "spoke3_int_nlb" {
   dns_record_client_routing_policy = "availability_zone_affinity"
 
   security_group_ids = [
-    module.spoke3.elb_sg_id
+    module.spoke3.elb_security_group_id
   ]
 
   subnet_mapping = [
@@ -107,7 +107,25 @@ resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1" {
     module.hub1.subnet_ids["EndpointSubnetB"],
   ]
   security_group_ids = [
-    module.hub1.ec2_sg_id
+    module.hub1.ec2_security_group_id
+  ]
+}
+
+# hub1
+## dummy for testing multiple endpoint associations to same service
+
+resource "aws_vpc_endpoint" "spoke3_int_nlb_hub1_dummy" {
+  provider          = aws.region1
+  vpc_id            = module.hub1.vpc_id
+  service_name      = module.spoke3_int_nlb.endpoint_service_name
+  auto_accept       = true
+  vpc_endpoint_type = "Interface"
+  subnet_ids = [
+    module.hub1.subnet_ids["EndpointSubnetA"],
+    module.hub1.subnet_ids["EndpointSubnetB"],
+  ]
+  security_group_ids = [
+    module.hub1.ec2_security_group_id
   ]
 }
 

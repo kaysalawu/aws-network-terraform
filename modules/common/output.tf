@@ -20,6 +20,6 @@ output "ipv6_ipam_pool_id" {
 }
 
 output "key_pair_name" {
-  value = aws_key_pair.this.key_name
+  value = try(aws_key_pair.this.0.key_name, null)
 }
 

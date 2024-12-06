@@ -13,6 +13,7 @@ data "http" "my_public_ip" {
 ####################################################
 
 resource "aws_key_pair" "this" {
+  count      = var.public_key_path == null ? 0 : 1
   key_name   = "${local.prefix}kp-${var.region}"
   public_key = file(var.public_key_path)
 }

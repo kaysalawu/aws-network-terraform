@@ -46,13 +46,15 @@ No requirements.
 | Name | Description |
 |------|-------------|
 | <a name="output_bastion_id"></a> [bastion\_id](#output\_bastion\_id) | n/a |
-| <a name="output_bastion_sg_id"></a> [bastion\_security\_group\_id](#output\_bastion\_security\_group\_id) | n/a |
-| <a name="output_ec2_sg_id"></a> [ec2\_security\_group\_id](#output\_ec2\_security\_group\_id) | n/a |
+| <a name="output_bastion_public_ip"></a> [bastion\_public\_ip](#output\_bastion\_public\_ip) | n/a |
+| <a name="output_bastion_security_group_id"></a> [bastion\_security\_group\_id](#output\_bastion\_security\_group\_id) | n/a |
+| <a name="output_ec2_security_group_id"></a> [ec2\_security\_group\_id](#output\_ec2\_security\_group\_id) | n/a |
+| <a name="output_elb_security_group_id"></a> [elb\_security\_group\_id](#output\_elb\_security\_group\_id) | n/a |
 | <a name="output_internet_gateway"></a> [internet\_gateway](#output\_internet\_gateway) | n/a |
 | <a name="output_internet_gateway_id"></a> [internet\_gateway\_id](#output\_internet\_gateway\_id) | n/a |
 | <a name="output_nat_gateway_ids"></a> [nat\_gateway\_ids](#output\_nat\_gateway\_ids) | n/a |
 | <a name="output_nat_gateways"></a> [nat\_gateways](#output\_nat\_gateways) | n/a |
-| <a name="output_nva_sg_id"></a> [nva\_security\_group\_id](#output\_nva\_security\_group\_id) | n/a |
+| <a name="output_nva_security_group_id"></a> [nva\_security\_group\_id](#output\_nva\_security\_group\_id) | n/a |
 | <a name="output_route_table_ids"></a> [route\_table\_ids](#output\_route\_table\_ids) | n/a |
 | <a name="output_route_tables"></a> [route\_tables](#output\_route\_tables) | n/a |
 | <a name="output_subnet_ids"></a> [subnet\_ids](#output\_subnet\_ids) | n/a |

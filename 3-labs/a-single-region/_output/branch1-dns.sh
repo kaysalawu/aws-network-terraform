@@ -50,23 +50,23 @@ server:
         access-control: fd00::/8 allow
 
         # local data records
-        local-data: "branch1vm.cloudtuple.org 300 IN A 10.10.0.5"
-        local-data: "branch2vm.cloudtuple.org 300 IN A 10.20.0.5"
-        local-data: "branch3vm.cloudtuple.org 300 IN A 10.30.0.5"
-        local-data: "branch1vm.cloudtuple.org 300 IN AAAA 2000:abc:10::5"
-        local-data: "branch2vm.cloudtuple.org 300 IN AAAA 2000:abc:20::5"
-        local-data: "branch3vm.cloudtuple.org 300 IN AAAA 2000:abc:30::5"
+        local-data: "branch1vm.corp 300 IN A 10.10.0.5"
+        local-data: "branch2vm.corp 300 IN A 10.20.0.5"
+        local-data: "branch3vm.corp 300 IN A 10.30.0.5"
+        local-data: "branch1vm.corp 300 IN AAAA 2000:abc:10::5"
+        local-data: "branch2vm.corp 300 IN AAAA 2000:abc:20::5"
+        local-data: "branch3vm.corp 300 IN AAAA 2000:abc:30::5"
 
         # hosts redirected to PrivateLink
 
 
 forward-zone:
-        name: "eu.c.cloudtuple.org."
-        forward-addr: 10.11.10.4
+        name: "eu.aws.corp."
+        forward-addr: 10.11.8.4
 
 forward-zone:
-        name: "us.c.cloudtuple.org."
-        forward-addr: 10.22.10.4
+        name: "us.aws.corp."
+        forward-addr: 10.22.8.4
 
 forward-zone:
         name: "."
