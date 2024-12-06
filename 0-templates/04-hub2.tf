@@ -21,25 +21,8 @@ module "hub2" {
   # use_ipv6_ipam_pool = false
   # ipv6_ipam_pool_id  = module.common_region2.ipv6_ipam_pool_id
 
-  subnets = local.hub2_subnets
-
-  dns_resolver_config = [{
-    inbound = [
-      { subnet = "DnsInboundSubnetA", ip = local.hub2_dns_in_addr1 },
-      { subnet = "DnsInboundSubnetB", ip = local.hub2_dns_in_addr2 }
-    ]
-    outbound = [
-      { subnet = "DnsOutboundSubnetA", ip = local.hub2_dns_out_addr1 },
-      { subnet = "DnsOutboundSubnetB", ip = local.hub2_dns_out_addr2 }
-    ]
-    rules = local.hub2_features.dns_forwarding_rules
-
-    additional_associated_vpc_ids = [
-      module.spoke4.vpc_id,
-      module.spoke5.vpc_id,
-      module.spoke6.vpc_id,
-    ]
-  }]
+  subnets             = local.hub2_subnets
+  dns_resolver_config = local.hub2_features.dns_resolver_config
 
   nat_config = [
     { scope = "public", subnet = "UntrustSubnetA", },
@@ -62,15 +45,6 @@ module "hub2" {
       ]
     },
   ]
-
-  bastion_config = {
-    enable               = true
-    key_name             = module.common_region2.key_pair_name
-    private_ips          = [local.hub2_bastion_addr]
-    iam_instance_profile = module.common_region2.iam_instance_profile.name
-    public_dns_zone_name = local.domain_name
-    dns_prefix           = "bastion.hub2.${local.region2_code}"
-  }
 
   depends_on = [
     module.common_region2,
