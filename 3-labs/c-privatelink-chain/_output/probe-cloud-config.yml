@@ -288,15 +288,15 @@ write_files:
       # crontabs
       
       cat <<'EOF' >/etc/cron.d/traffic-gen
+      */1 * * * * /usr/local/bin/light-traffic 2>&1 > /dev/null
+      */1 * * * * /usr/local/bin/heavy-traffic 15 1 2>&1 > /dev/null
+      */2 * * * * /usr/local/bin/heavy-traffic 3 1 2>&1 > /dev/null
+      */3 * * * * /usr/local/bin/heavy-traffic 8 2 2>&1 > /dev/null
+      */5 * * * * /usr/local/bin/heavy-traffic 5 1 2>&1 > /dev/null
       EOF
       
       crontab /etc/cron.d/traffic-gen
       
-  - path: usr/local/bin/targets.json
-    owner: root
-    permissions: 0744
-    content: |
-      [{"host":"branch1Vm.corp","ipv4":"10.10.0.5","ipv6":"2000:abc:10::5","name":"branch1","probe":true},{"host":"hub1Vm.eu.aws.corp","ipv4":"10.11.0.5","ipv6":"2000:abc:11::5","name":"hub1   ","probe":true},{"host":"hub1pls.eu.aws.corp","name":"branch1-hub1-pep","ping":false,"probe":true},{"host":"spoke2pls.eu.aws.corp","name":"hub1-spoke2-pep","ping":false,"probe":true},{"host":"spoke1Vm.eu.aws.corp","ipv4":"10.1.0.5","ipv6":"2000:abc:1::5","name":"spoke1 ","probe":true},{"host":"spoke2Vm.eu.aws.corp","ipv4":"10.2.0.5","ipv6":"2000:abc:2::5","name":"spoke2 ","probe":true},{"host":"icanhazip.com","name":"internet"}]
 
 runcmd:
   - bash /var/lib/aws/init/startup.sh

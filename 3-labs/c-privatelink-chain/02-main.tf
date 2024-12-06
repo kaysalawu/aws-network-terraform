@@ -65,11 +65,11 @@ data "aws_ami" "ubuntu_region1" {
   }
 }
 
-data "aws_route53_zone" "public" {
-  provider     = aws.default
-  name         = "cloudtuple.org."
-  private_zone = false
-}
+# data "aws_route53_zone" "public" {
+#   provider     = aws.default
+#   name         = "cloudtuple.org."
+#   private_zone = false
+# }
 
 data "aws_caller_identity" "current" {
   provider = aws.default
@@ -84,15 +84,7 @@ locals {
     "region1" = { name = local.region1, dns_zone = local.region1_dns_zone }
   }
   hub1_features = {
-    dns_forwarding_rules = [
-      # {
-      #   domain = local.onprem_domain
-      #   target_ips = [
-      #     local.branch1_dns_addr,
-      #     local.branch3_dns_addr,
-      #   ]
-      # },
-    ]
+    dns_resolver_config = []
   }
 }
 
@@ -130,7 +122,7 @@ locals {
   vm_script_targets_region1 = [
     { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
     { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
-    { name = "hub1-spoke1-pep", host = local.hub1_spoke1_pep_fqdn, ping = false, probe = true },
+    { name = "branch1-hub1-pep", host = "hub1pls.${local.hub1_dns_zone}", ping = false, probe = true },
     { name = "hub1-spoke2-pep", host = local.hub1_spoke2_pep_fqdn, ping = false, probe = true },
     { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
     { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },

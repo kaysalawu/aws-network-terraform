@@ -3,6 +3,8 @@
 # spoke1
 ####################################################
 
+# base
+
 module "spoke1" {
   source    = "../../modules/base"
   providers = { aws = aws.region1 }
@@ -60,9 +62,7 @@ resource "time_sleep" "spoke1" {
   ]
 }
 
-####################################################
 # workload
-####################################################
 
 module "spoke1_vm" {
   source               = "../../modules/ec2"

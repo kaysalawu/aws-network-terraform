@@ -9,6 +9,10 @@ resource "aws_vpc_peering_connection" "hub1_to_spoke1" {
   peer_vpc_id = module.spoke1.vpc_id
   peer_region = local.spoke1_region
   tags        = local.hub1_tags
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 resource "aws_vpc_peering_connection_accepter" "hub1_to_spoke1" {
@@ -16,6 +20,10 @@ resource "aws_vpc_peering_connection_accepter" "hub1_to_spoke1" {
   vpc_peering_connection_id = aws_vpc_peering_connection.hub1_to_spoke1.id
   auto_accept               = true
   tags                      = local.spoke1_tags
+
+  lifecycle {
+    ignore_changes = [tags]
+  }
 }
 
 ####################################################

@@ -81,7 +81,6 @@ module "branch1_vm" {
       private_ips        = [local.branch1_vm_addr, ]
       security_group_ids = [module.branch1.ec2_sg_id, ]
       dns_config         = { zone_name = local.region1_dns_zone, name = local.branch1_vm_hostname }
-      create_eip         = true
     }
   ]
   depends_on = [

@@ -83,8 +83,7 @@ module "hub1_int_nlb" {
   ]
 
   endpoint_service = {
-    enabled          = true
-    private_dns_name = "${local.hub1_prefix}int-nlb.${data.aws_route53_zone.public.name}"
+    enabled = true
   }
 
   route53_records = [{
