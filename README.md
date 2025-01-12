@@ -40,7 +40,7 @@ The Virtual Private Cloud (VPC) networks, ***hub1*** and ***hub2***, are central
 
 This lab deploys a single region architecture to demonstrate daisy-chaining of AWS PrivateLink services.
 
-<img src="./3-labs/c-privatelink-chain/images/architecture.png" alt="Dual region hub and spoke" width="400">
+<img src="./3-labs/c-privatelink-chain/images/architecture.png" alt="Dual region hub and spoke" width="700">
 <p>
 
 An endpoint in the source VPC, `c-branch1-vpc`, is connected to a Private Link Service in the hub VPC, `c-hub1-vpc`. The Private Link Service in `Hub1` is linked to a network load balancer with a IP endpoint (backend) that connects to another PrivateLink Service in the destination VPC, `c-spoke1-vpc`.
