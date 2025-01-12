@@ -59,11 +59,11 @@ See the [troubleshooting](../../troubleshooting/README.md) section for tips on h
 
 The table below shows the auto-generated output files from the lab. They are located in the `output` directory.
 
-| Item    | Description  | Location |
-|--------|--------|--------|
-| VM server | Python Flask web server, test scripts | [_output/server.sh](./_output/server.sh) |
+| Item               | Description                           | Location                                                     |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------ |
+| VM server          | Python Flask web server, test scripts | [_output/server.sh](./_output/server.sh)                     |
 | VM cloud-init YAML | Python Flask web server, test scripts | [_output/vm-cloud-config.yml](./_output/vm-cloud-config.yml) |
-||||
+|                    |                                       |                                                              |
 
 ## Testing Private Link Service from ***c-branch1-vm***
 
@@ -128,16 +128,16 @@ No requirements.
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_aws_access_key"></a> [aws\_access\_key](#input\_aws\_access\_key) | account access key | `any` | n/a | yes |
-| <a name="input_aws_secret_access_key"></a> [aws\_secret\_access\_key](#input\_aws\_secret\_access\_key) | account secret key | `any` | n/a | yes |
-| <a name="input_prefix"></a> [prefix](#input\_prefix) | prefix used for all resources | `string` | `"c"` | no |
-| <a name="input_public_key_path"></a> [public\_key\_path](#input\_public\_key\_path) | path to public key for ec2 SSH | `any` | `null` | no |
+| Name                                                                                                    | Description                    | Type     | Default | Required |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------ | -------- | ------- | :------: |
+| <a name="input_aws_access_key"></a> [aws\_access\_key](#input\_aws\_access\_key)                        | account access key             | `any`    | n/a     |   yes    |
+| <a name="input_aws_secret_access_key"></a> [aws\_secret\_access\_key](#input\_aws\_secret\_access\_key) | account secret key             | `any`    | n/a     |   yes    |
+| <a name="input_prefix"></a> [prefix](#input\_prefix)                                                    | prefix used for all resources  | `string` | `"c"`   |    no    |
+| <a name="input_public_key_path"></a> [public\_key\_path](#input\_public\_key\_path)                     | path to public key for ec2 SSH | `any`    | `null`  |    no    |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| <a name="output_bastion_public_ip"></a> [bastion\_public\_ip](#output\_bastion\_public\_ip) | n/a |
+| Name                                                                                        | Description |
+| ------------------------------------------------------------------------------------------- | ----------- |
+| <a name="output_bastion_public_ip"></a> [bastion\_public\_ip](#output\_bastion\_public\_ip) | n/a         |
 <!-- END_TF_DOCS -->

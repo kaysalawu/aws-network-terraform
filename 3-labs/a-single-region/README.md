@@ -53,12 +53,12 @@ Ensure you meet all requirements in the [prerequisites](../../prerequisites/READ
    ```
 3. (Optional) If you want to enable additional features such as IPv6, VPC flow logs and logging set the following variables to `true` in the [`02-main.tf`](./02-main.tf) file.
 
-   | Variable | Description | Default | Link |
-   |----------|-------------|---------|------|
-   | enable_dashboards | Configure dashboards for enabled resources | false | [02-main.tf#L09](./02-main.tf#L09) |
-   | enable_ipv6 | Enable IPv6 on all supported resources | false | [02-main.tf#L10](./02-main.tf#L10) |
-   | enable_flow_logs | Enable VPC flow logs in the VPC hubs | false | [02-main.tf#L11](./02-main.tf#L11) |
-   ||||
+   | Variable          | Description                                | Default | Link                               |
+   | ----------------- | ------------------------------------------ | ------- | ---------------------------------- |
+   | enable_dashboards | Configure dashboards for enabled resources | false   | [02-main.tf#L09](./02-main.tf#L09) |
+   | enable_ipv6       | Enable IPv6 on all supported resources     | false   | [02-main.tf#L10](./02-main.tf#L10) |
+   | enable_flow_logs  | Enable VPC flow logs in the VPC hubs       | false   | [02-main.tf#L11](./02-main.tf#L11) |
+   |                   |                                            |         |
 4. Run the following terraform commands and type ***yes*** at the prompt:
 
    ```sh
@@ -75,13 +75,13 @@ See the [troubleshooting](../../troubleshooting/README.md) section for tips on h
 
 The table below shows the auto-generated output files from the lab. They are located in the `output` directory.
 
-| Item    | Description  | Location |
-|--------|--------|--------|
-| Branch1 DNS | Authoritative DNS and forwarding | [_output/branch1-dns.sh](./_output/branch1-dns.sh) |
-| Branch1 NVA | Linux Strongswan + FRR configuration | [_output/branch1-nva.sh](./_output/branch1-nva.sh) |
-| VM server | Python Flask web server, test scripts | [_output/server.sh](./_output/server.sh) |
+| Item               | Description                           | Location                                                     |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------ |
+| Branch1 DNS        | Authoritative DNS and forwarding      | [_output/branch1-dns.sh](./_output/branch1-dns.sh)           |
+| Branch1 NVA        | Linux Strongswan + FRR configuration  | [_output/branch1-nva.sh](./_output/branch1-nva.sh)           |
+| VM server          | Python Flask web server, test scripts | [_output/server.sh](./_output/server.sh)                     |
 | VM cloud-init YAML | Python Flask web server, test scripts | [_output/vm-cloud-config.yml](./_output/vm-cloud-config.yml) |
-||||
+|                    |                                       |                                                              |
 
 ## Dashboards (Optional)
 
@@ -333,17 +333,17 @@ exit
 
 ## Cleanup
 
-1\. (Optional) Navigate back to the lab directory (if you are not already there)
+1. (Optional) Navigate back to the lab directory (if you are not already there)
 
-```sh
-cd aws-network-terraform/3-labs/a-single-region
-```
+   ```sh
+   cd aws-network-terraform/3-labs/a-single-region
+   ```
 
-2\. Run the following command and type ***yes*** at the prompt:
+2. Run the following command and type ***yes*** at the prompt:
 
-```sh
-terraform destroy
-```
+   ```sh
+   terraform destroy
+   ```
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
@@ -352,16 +352,16 @@ No requirements.
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_aws_access_key"></a> [aws\_access\_key](#input\_aws\_access\_key) | account access key | `any` | n/a | yes |
-| <a name="input_aws_secret_access_key"></a> [aws\_secret\_access\_key](#input\_aws\_secret\_access\_key) | account secret key | `any` | n/a | yes |
-| <a name="input_prefix"></a> [prefix](#input\_prefix) | prefix used for all resources | `string` | `"a"` | no |
-| <a name="input_public_key_path"></a> [public\_key\_path](#input\_public\_key\_path) | path to public key for ec2 SSH | `any` | n/a | yes |
+| Name                                                                                                    | Description                    | Type     | Default | Required |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------ | -------- | ------- | :------: |
+| <a name="input_aws_access_key"></a> [aws\_access\_key](#input\_aws\_access\_key)                        | account access key             | `any`    | n/a     |   yes    |
+| <a name="input_aws_secret_access_key"></a> [aws\_secret\_access\_key](#input\_aws\_secret\_access\_key) | account secret key             | `any`    | n/a     |   yes    |
+| <a name="input_prefix"></a> [prefix](#input\_prefix)                                                    | prefix used for all resources  | `string` | `"a"`   |    no    |
+| <a name="input_public_key_path"></a> [public\_key\_path](#input\_public\_key\_path)                     | path to public key for ec2 SSH | `any`    | n/a     |   yes    |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| <a name="output_bastion_public_ip"></a> [bastion\_public\_ip](#output\_bastion\_public\_ip) | n/a |
+| Name                                                                                        | Description |
+| ------------------------------------------------------------------------------------------- | ----------- |
+| <a name="output_bastion_public_ip"></a> [bastion\_public\_ip](#output\_bastion\_public\_ip) | n/a         |
 <!-- END_TF_DOCS -->
