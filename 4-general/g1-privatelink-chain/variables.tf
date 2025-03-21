@@ -1,7 +1,7 @@
 
 variable "prefix" {
   description = "prefix used for all resources"
-  default     = "c"
+  default     = "g1"
 }
 
 variable "aws_access_key" {

@@ -391,11 +391,15 @@ module "bastion" {
 
   interfaces = [
     {
-      name               = "${local.prefix}bastion-untrust"
-      subnet_id          = aws_subnet.this["UntrustSubnetA"].id
-      private_ips        = var.bastion_config.private_ips
-      security_group_ids = [aws_security_group.bastion_sg.id, ]
-      create_eip         = true
+      name                    = "${local.prefix}bastion-untrust"
+      subnet_id               = aws_subnet.this["UntrustSubnetA"].id
+      private_ip_list_enabled = var.bastion_config.private_ip_list_enabled
+      private_ip_list         = var.bastion_config.private_ip_list
+      security_group_ids = concat(
+        [aws_security_group.bastion_sg.id, ],
+        var.bastion_config.security_group_ids
+      )
+      create_eip = true
     }
   ]
 }

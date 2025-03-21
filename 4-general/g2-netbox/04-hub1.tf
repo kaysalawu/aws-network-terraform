@@ -49,7 +49,7 @@ module "hub1" {
   bastion_config = {
     enable               = true
     key_name             = module.common_region1.key_pair_name
-    private_ips          = [local.hub1_bastion_addr, ]
+    private_ip_list      = [local.hub1_bastion_addr, ]
     iam_instance_profile = module.common_region1.iam_instance_profile.name
   }
 
@@ -76,35 +76,6 @@ resource "time_sleep" "hub1" {
   depends_on = [
     module.hub1,
     aws_route53_zone.region1,
-  ]
-}
-
-####################################################
-# workload
-####################################################
-
-module "hub1_vm" {
-  source               = "../../modules/ec2"
-  providers            = { aws = aws.region1 }
-  name                 = "${local.hub1_prefix}vm"
-  availability_zone    = "${local.hub1_region}a"
-  iam_instance_profile = module.common_region1.iam_instance_profile.name
-  ami                  = data.aws_ami.ubuntu_region1.id
-  key_name             = module.common_region1.key_pair_name
-  user_data            = base64encode(module.vm_cloud_init.cloud_config)
-  tags                 = local.hub1_tags
-
-  interfaces = [
-    {
-      name               = "${local.hub1_prefix}vm-main"
-      subnet_id          = module.hub1.subnet_ids["MainSubnetA"]
-      private_ips        = [local.hub1_vm_addr, ]
-      security_group_ids = [module.hub1.ec2_security_group_id, ]
-      dns_config         = { zone_name = local.region1_dns_zone, name = local.hub1_vm_hostname }
-    }
-  ]
-  depends_on = [
-    time_sleep.hub1,
   ]
 }
 
