@@ -127,7 +127,7 @@ module "branch3_nva" {
     {
       name               = "${local.branch3_prefix}nva-untrust"
       subnet_id          = module.branch3.subnet_ids["UntrustSubnetA"]
-      private_ips        = [local.branch3_nva_untrust_addr, ]
+      private_ip_list    = [local.branch3_nva_untrust_addr, ]
       security_group_ids = [module.branch3.nva_security_group_id, ]
       eip_tag_name       = "${local.branch3_prefix}nva-untrust"
       source_dest_check  = false
@@ -135,7 +135,7 @@ module "branch3_nva" {
     {
       name               = "${local.branch3_prefix}nva-trust"
       subnet_id          = module.branch3.subnet_ids["TrustSubnetA"]
-      private_ips        = [local.branch3_nva_trust_addr, ]
+      private_ip_list    = [local.branch3_nva_trust_addr, ]
       security_group_ids = [module.branch3.ec2_security_group_id, ]
       source_dest_check  = false
     }
