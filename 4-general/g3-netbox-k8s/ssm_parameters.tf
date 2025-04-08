@@ -1,9 +1,8 @@
 # SSM Parameters for K8
 # Read by K8 in the k8-pod-iam-roles.tf module
 module "ssm_parameters" {
-  providers = { aws = aws.region1 }
-  source    = "./modules/ssm-parameters"
-  random    = false
+  source = "./modules/ssm-parameters"
+  random = false
   secure_strings = [
     "/awx/rds-password",
     "/awx/admin_password",
