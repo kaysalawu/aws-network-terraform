@@ -15,6 +15,12 @@ locals {
   branch1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
   branch2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
   branch3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  spoke1_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke2_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke3_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
+  spoke4_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke5_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke6_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
   tgw1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
   tgw2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
 }
@@ -97,7 +103,11 @@ locals {
           ]
         },
       ]
-      additional_associated_vpc_ids = []
+      additional_associated_vpc_ids = [
+        # module.spoke1.vpc_id,
+        # module.spoke2.vpc_id,
+        # module.spoke3.vpc_id,
+      ]
     }]
   }
 }
@@ -132,8 +142,14 @@ locals {
   hub2_ergw_asn  = "65022"
   hub2_ars_asn   = "65515"
 
-  init_dir                  = "/var/lib/aws"
-  vm_script_targets_region1 = []
+  init_dir = "/var/lib/aws"
+  vm_script_targets_region1 = [
+    { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
+    { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
+    { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
+    { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
+    { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
+  ]
   vm_script_targets_misc = [
     { name = "internet", host = "icanhazip.com" },
   ]
@@ -147,6 +163,13 @@ locals {
     TARGETS_HEAVY_TRAFFIC_GEN = []
     ENABLE_TRAFFIC_GEN        = false
   })
+  probe_init_vars = {
+    TARGETS                   = local.vm_script_targets
+    TARGETS_LIGHT_TRAFFIC_GEN = local.vm_script_targets
+    TARGETS_HEAVY_TRAFFIC_GEN = [for target in local.vm_script_targets : target.host if try(target.probe, false)]
+    USERNAME                  = local.username
+    PASSWORD                  = local.password
+  }
   vm_init_vars = {
     TARGETS                   = local.vm_script_targets
     TARGETS_LIGHT_TRAFFIC_GEN = []
@@ -166,8 +189,17 @@ locals {
     USERNAME = local.username
     PASSWORD = local.password
   }
-  vm_init_files         = {}
-  vm_startup_init_files = {}
+  vm_init_files = {
+    "${local.init_dir}/fastapi/docker-compose-http-80.yml"   = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-80.yml", {}) }
+    "${local.init_dir}/fastapi/docker-compose-http-8080.yml" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/init/fastapi/docker-compose-http-8080.yml", {}) }
+  }
+  vm_startup_init_files = {
+    "${local.init_dir}/init/startup.sh" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/startup.sh", local.vm_init_vars) }
+    "usr/local/bin/targets.json"        = { owner = "root", permissions = "0744", content = jsonencode(local.vm_script_targets) }
+  }
+  probe_startup_init_files = {
+    "${local.init_dir}/init/startup.sh" = { owner = "root", permissions = "0744", content = templatefile("../../scripts/startup.sh", local.probe_init_vars) }
+  }
   onprem_local_records = [
     { name = lower(local.branch1_vm_fqdn), rdata = local.branch1_vm_addr, ttl = "300", type = "A" },
     { name = lower(local.branch2_vm_fqdn), rdata = local.branch2_vm_addr, ttl = "300", type = "A" },
@@ -177,6 +209,34 @@ locals {
     { name = lower(local.branch3_vm_fqdn), rdata = local.branch3_vm_addr_v6, ttl = "300", type = "AAAA" },
   ]
   onprem_redirected_hosts = []
+}
+
+module "vm_cloud_init" {
+  source = "../../modules/cloud-config-gen"
+  files = merge(
+    local.vm_init_files,
+    local.vm_startup_init_files
+  )
+  packages = []
+  run_commands = [
+    "bash ${local.init_dir}/init/startup.sh",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
+  ]
+}
+
+module "probe_vm_cloud_init" {
+  source = "../../modules/cloud-config-gen"
+  files = merge(
+    local.vm_init_files,
+    local.probe_startup_init_files,
+  )
+  packages = []
+  run_commands = [
+    "bash ${local.init_dir}/init/startup.sh",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
+    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
+  ]
 }
 
 ####################################################
@@ -198,7 +258,13 @@ resource "aws_eip" "branch1_nva_untrust" {
 ####################################################
 
 locals {
-  main_files = {}
+  main_files = {
+    "output/server.sh"              = local.vm_startup
+    "output/startup.sh"             = templatefile("../../scripts/startup.sh", local.vm_init_vars)
+    "output/startup-probe.sh"       = templatefile("../../scripts/startup.sh", local.probe_init_vars)
+    "output/probe-cloud-config.yml" = module.probe_vm_cloud_init.cloud_config
+    "output/vm-cloud-config.yml"    = module.vm_cloud_init.cloud_config
+  }
 }
 
 resource "local_file" "main_files" {
