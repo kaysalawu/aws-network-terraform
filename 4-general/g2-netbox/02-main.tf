@@ -225,20 +225,6 @@ module "vm_cloud_init" {
   ]
 }
 
-module "probe_vm_cloud_init" {
-  source = "../../modules/cloud-config-gen"
-  files = merge(
-    local.vm_init_files,
-    local.probe_startup_init_files,
-  )
-  packages = []
-  run_commands = [
-    "bash ${local.init_dir}/init/startup.sh",
-    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-80.yml up -d",
-    "HOSTNAME=$(hostname) docker compose -f ${local.init_dir}/fastapi/docker-compose-http-8080.yml up -d",
-  ]
-}
-
 ####################################################
 # addresses
 ####################################################
@@ -259,11 +245,10 @@ resource "aws_eip" "branch1_nva_untrust" {
 
 locals {
   main_files = {
-    "output/server.sh"              = local.vm_startup
-    "output/startup.sh"             = templatefile("../../scripts/startup.sh", local.vm_init_vars)
-    "output/startup-probe.sh"       = templatefile("../../scripts/startup.sh", local.probe_init_vars)
-    "output/probe-cloud-config.yml" = module.probe_vm_cloud_init.cloud_config
-    "output/vm-cloud-config.yml"    = module.vm_cloud_init.cloud_config
+    "output/server.sh"           = local.vm_startup
+    "output/startup.sh"          = templatefile("../../scripts/startup.sh", local.vm_init_vars)
+    "output/startup-probe.sh"    = templatefile("../../scripts/startup.sh", local.probe_init_vars)
+    "output/vm-cloud-config.yml" = module.vm_cloud_init.cloud_config
   }
 }
 

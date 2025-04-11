@@ -71,17 +71,32 @@ resource "aws_route53_zone" "region1" {
   }
 }
 
-resource "time_sleep" "hub1" {
-  create_duration = "90s"
-  depends_on = [
-    module.hub1,
-    aws_route53_zone.region1,
-  ]
-}
-
 ####################################################
 # workload
 ####################################################
+
+locals {
+  netbox_init_dir = "/var/lib/aws"
+  netbox_init_vars = {
+    USERNAME = local.username
+    PASSWORD = local.password
+  }
+  netbox_startup_files = {
+    "${local.netbox_init_dir}/netbox/netbox.sh" = { owner = "root", permissions = "0744", content = templatefile("./scripts/netbox.sh", local.netbox_init_vars) }
+  }
+}
+
+module "netbox_cloud_init" {
+  source = "../../modules/cloud-config-gen"
+  files = merge(
+    local.vm_init_files,
+    local.netbox_startup_files
+  )
+  packages = []
+  run_commands = [
+    "${local.netbox_init_dir}/netbox/netbox.sh",
+  ]
+}
 
 module "hub1_vm" {
   source               = "../../modules/ec2"
@@ -92,7 +107,7 @@ module "hub1_vm" {
   iam_instance_profile = module.common_region1.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu_region1.id
   key_name             = module.common_region1.key_pair_name
-  user_data            = base64encode(module.vm_cloud_init.cloud_config)
+  user_data            = base64encode(module.netbox_cloud_init.cloud_config)
   tags                 = local.hub1_tags
 
   interfaces = [
@@ -103,9 +118,6 @@ module "hub1_vm" {
       security_group_ids = [module.hub1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region1_dns_zone, name = local.hub1_vm_hostname }
     }
-  ]
-  depends_on = [
-    time_sleep.hub1,
   ]
 }
 
