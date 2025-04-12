@@ -72,10 +72,44 @@ resource "aws_route53_zone" "region1" {
 }
 
 ####################################################
-# workload
+# ssm parameters
 ####################################################
 
+# netbox
+
+resource "aws_ssm_parameter" "netbox_admin_username" {
+  provider    = aws.region1
+  name        = "netbox_admin_username"
+  description = "NetBox admin username"
+  type        = "String"
+  value       = "admin"
+}
+
+resource "aws_ssm_parameter" "netbox_admin_password" {
+  provider    = aws.region1
+  name        = "netbox_admin_password"
+  description = "NetBox admin password"
+  type        = "SecureString"
+  value       = "Password123"
+}
+
+resource "aws_ssm_parameter" "netbox_admin_email" {
+  provider    = aws.region1
+  name        = "netbox_admin_email"
+  description = "NetBox admin email"
+  type        = "String"
+  value       = "admin@example.com"
+}
+
 # postgresql
+
+resource "aws_ssm_parameter" "postgresql_db_name" {
+  provider    = aws.region1
+  name        = "postgresql_db_name"
+  description = "NetBox PostgreSQL database name"
+  type        = "String"
+  value       = "netbox"
+}
 
 resource "aws_ssm_parameter" "postgresql_username" {
   provider    = aws.region1
@@ -100,8 +134,8 @@ resource "aws_ssm_parameter" "postgresql_password" {
 locals {
   netbox_init_dir = "/var/lib/aws"
   netbox_init_vars = {
-    ADMIN_USERNAME = local.username
-    ADMIN_PASSWORD = local.password
+    USERNAME = local.username
+    PASSWORD = local.password
   }
   netbox_startup_files = {
     "${local.netbox_init_dir}/netbox/netbox.sh" = { owner = "root", permissions = "0744", content = templatefile("./scripts/netbox/netbox.sh", local.netbox_init_vars) }
@@ -140,6 +174,14 @@ module "hub1_vm" {
       security_group_ids = [module.hub1.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region1_dns_zone, name = local.hub1_vm_hostname }
     }
+  ]
+  depends_on = [
+    aws_ssm_parameter.netbox_admin_username,
+    aws_ssm_parameter.netbox_admin_password,
+    aws_ssm_parameter.netbox_admin_email,
+    aws_ssm_parameter.postgresql_db_name,
+    aws_ssm_parameter.postgresql_username,
+    aws_ssm_parameter.postgresql_password,
   ]
 }
 

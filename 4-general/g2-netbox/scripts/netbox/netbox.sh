@@ -4,21 +4,24 @@ export CLOUD_ENV=aws
 exec > /var/log/$CLOUD_ENV-startup.log 2>&1
 export DEBIAN_FRONTEND=noninteractive
 
-# Set variables
-DB_NAME="netbox"
-DB_USER="netbox"
-DB_PASSWORD="Password123"
-ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="Password123"
-ADMIN_EMAIL="admin@example.com"
-
-echo "${ADMIN_USERNAME}:${ADMIN_PASSWORD}" | chpasswd
+echo "${USERNAME}:${PASSWORD}" | chpasswd
 sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 systemctl restart sshd
 
 HOST_NAME=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Name)
+REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
 hostnamectl set-hostname $HOST_NAME
 sed -i "s/127.0.0.1.*/127.0.0.1 $HOST_NAME/" /etc/hosts
+
+sudo apt install -y awscli
+
+# Set variables
+DB_NAME=$(aws ssm get-parameter --name "postgresql_db_name" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+DB_USER=$(aws ssm get-parameter --name "postgresql_username" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+DB_PASSWORD=$(aws ssm get-parameter --name "postgresql_password" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+NETBOX_ADMIN_USERNAME=$(aws ssm get-parameter --name "netbox_admin_username" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+NETBOX_ADMIN_PASSWORD=$(aws ssm get-parameter --name "netbox_admin_password" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+NETBOX_NETBOX_ADMIN_EMAIL=$(aws ssm get-parameter --name "netbox_admin_email" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
 
 echo ###############################################################
 echo Install System Packages
@@ -166,8 +169,8 @@ cd /opt/netbox/netbox
 python3 manage.py shell <<EOF
 from django.contrib.auth import get_user_model
 User = get_user_model()
-if not User.objects.filter(username="$ADMIN_USERNAME").exists():
-    User.objects.create_superuser(username="$ADMIN_USERNAME", password="$ADMIN_PASSWORD", email="$ADMIN_EMAIL")
+if not User.objects.filter(username="$NETBOX_ADMIN_USERNAME").exists():
+    User.objects.create_superuser(username="$NETBOX_ADMIN_USERNAME", password="$NETBOX_ADMIN_PASSWORD", email="$NETBOX_ADMIN_EMAIL")
     print("Superuser created successfully.")
 else:
     print("Superuser already exists.")
