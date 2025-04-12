@@ -128,14 +128,36 @@ resource "aws_ssm_parameter" "postgresql_password" {
 }
 
 ####################################################
+# rds
+####################################################
+
+module "rds_postgres" {
+  providers           = { aws = aws.region1 }
+  source              = "../../modules/rds-postgres"
+  identifier          = "${local.hub1_prefix}netbox-rds"
+  vpc_id              = module.hub1.vpc_id
+  allowed_cidr_blocks = local.private_prefixes_ipv4
+  subnet_ids = [
+    module.hub1.subnet_ids["DbSubnetA"],
+    module.hub1.subnet_ids["DbSubnetB"],
+  ]
+  db_name              = aws_ssm_parameter.postgresql_db_name.value
+  db_username          = aws_ssm_parameter.postgresql_username.value
+  db_password          = aws_ssm_parameter.postgresql_password.value
+  parameter_group_name = "default.postgres13"
+  tags                 = local.hub1_tags
+}
+
+####################################################
 # workload
 ####################################################
 
 locals {
   netbox_init_dir = "/var/lib/aws"
   netbox_init_vars = {
-    USERNAME = local.username
-    PASSWORD = local.password
+    USERNAME        = local.username
+    PASSWORD        = local.password
+    RDS_DB_ENDPOINT = split(":", module.rds_postgres.endpoint)[0]
   }
   netbox_startup_files = {
     "${local.netbox_init_dir}/netbox/netbox.sh" = { owner = "root", permissions = "0744", content = templatefile("./scripts/netbox/netbox.sh", local.netbox_init_vars) }
@@ -159,7 +181,7 @@ module "hub1_vm" {
   providers            = { aws = aws.region1 }
   name                 = "${local.hub1_prefix}vm"
   availability_zone    = "${local.hub1_region}a"
-  instance_type        = "t3.medium"
+  instance_type        = "t3.small"
   iam_instance_profile = module.common_region1.iam_instance_profile.name
   ami                  = data.aws_ami.ubuntu_region1.id
   key_name             = module.common_region1.key_pair_name

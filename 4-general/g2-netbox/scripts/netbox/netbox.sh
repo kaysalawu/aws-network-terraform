@@ -21,7 +21,8 @@ DB_USER=$(aws ssm get-parameter --name "postgresql_username" --region $REGION --
 DB_PASSWORD=$(aws ssm get-parameter --name "postgresql_password" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
 NETBOX_ADMIN_USERNAME=$(aws ssm get-parameter --name "netbox_admin_username" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
 NETBOX_ADMIN_PASSWORD=$(aws ssm get-parameter --name "netbox_admin_password" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
-NETBOX_NETBOX_ADMIN_EMAIL=$(aws ssm get-parameter --name "netbox_admin_email" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+NETBOX_ADMIN_EMAIL=$(aws ssm get-parameter --name "netbox_admin_email" --region $REGION --with-decryption --query 'Parameter.Value' --output text)
+RDS_DB_ENDPOINT="${RDS_DB_ENDPOINT}"
 
 echo ###############################################################
 echo Install System Packages
@@ -69,21 +70,23 @@ if [ "$postgresql_version" != "$required_version" ]; then
 fi
 echo "PostgreSQL version $postgresql_version is installed. Continuing with the script..."
 
-# Database Creation
+# Uncomment the following to use local PostgreSQL (commented out for RDS setup)
+# RDS_DB_ENDPOINT=localhost
 
-sudo -u postgres psql <<EOF
-CREATE DATABASE $DB_NAME;
-CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
-ALTER DATABASE $DB_NAME OWNER TO $DB_USER;
--- The next two commands are needed on PostgreSQL 15 and later
-\connect $DB_NAME;
-GRANT CREATE ON SCHEMA public TO $DB_USER;
-EOF
-echo "PostgreSQL setup completed successfully."
+# # Local Database Creation (Commented out for RDS usage)
+# sudo -u postgres psql <<EOF
+# CREATE DATABASE $DB_NAME;
+# CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
+# ALTER DATABASE $DB_NAME OWNER TO $DB_USER;
+# -- The next two commands are needed on PostgreSQL 15 and later
+# \connect $DB_NAME;
+# GRANT CREATE ON SCHEMA public TO $DB_USER;
+# EOF
+# echo "PostgreSQL setup completed successfully."
 
 # Verify Service Status
 
-PGPASSWORD="$DB_PASSWORD" psql --username $DB_USER --host localhost --dbname $DB_NAME <<EOF
+PGPASSWORD="$DB_PASSWORD" psql --username $DB_USER --host $RDS_DB_ENDPOINT --dbname $DB_NAME <<EOF
 \conninfo
 \q
 EOF
@@ -93,7 +96,6 @@ else
     echo "Error: PostgreSQL authentication test failed."
     exit 1
 fi
-echo "All checks and setups completed successfully."
 
 echo ###############################################################
 echo Redis
@@ -151,7 +153,7 @@ sudo chown --recursive netbox /opt/netbox/netbox/scripts/
 cd /opt/netbox/netbox/netbox/
 sudo cp configuration_example.py configuration.py
 sed -i "s/ALLOWED_HOSTS = \[\]/ALLOWED_HOSTS = \['*'\]/" configuration.py
-sed -i "/DATABASE = {/,/}/c\DATABASE = {\n    'ENGINE': 'django.db.backends.postgresql',\n    'NAME': '$DB_NAME',\n    'USER': '$DB_USER',\n    'PASSWORD': '$DB_PASSWORD',\n    'HOST': 'localhost',\n    'PORT': '',\n    'CONN_MAX_AGE': 300,\n}" configuration.py
+sed -i "/DATABASE = {/,/}/c\DATABASE = {\n    'ENGINE': 'django.db.backends.postgresql',\n    'NAME': '$DB_NAME',\n    'USER': '$DB_USER',\n    'PASSWORD': '$DB_PASSWORD',\n    'HOST': '$RDS_DB_ENDPOINT',\n    'PORT': '',\n    'CONN_MAX_AGE': 300,\n}" configuration.py
 SECRET_KEY=$(python3 ../generate_secret_key.py)
 sed -i "s/SECRET_KEY = ''/SECRET_KEY = '$SECRET_KEY'/" configuration.py
 sudo sh -c "echo 'boto3' >> /opt/netbox/local_requirements.txt"

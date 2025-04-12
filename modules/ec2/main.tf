@@ -109,6 +109,10 @@ resource "aws_instance" "this" {
       Name = var.name
     }
   )
+
+  # lifecycle {
+  #   ignore_changes = all
+  # }
 }
 
 ####################################################

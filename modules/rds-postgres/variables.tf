@@ -1,6 +1,6 @@
 
-variable "name_prefix" {
-  description = "Prefix for naming resources"
+variable "identifier" {
+  description = "Identifier for the RDS instance"
   type        = string
 }
 
@@ -39,7 +39,7 @@ variable "db_password" {
 variable "engine_version" {
   description = "PostgreSQL engine version"
   type        = string
-  default     = "13.4"
+  default     = "13.20"
 }
 
 variable "instance_class" {
