@@ -75,14 +75,36 @@ resource "aws_route53_zone" "region1" {
 # workload
 ####################################################
 
+# postgresql
+
+resource "aws_ssm_parameter" "postgresql_username" {
+  provider    = aws.region1
+  name        = "postgresql_username"
+  description = "NetBox PostgreSQL user"
+  type        = "String"
+  value       = "netbox"
+}
+
+resource "aws_ssm_parameter" "postgresql_password" {
+  provider    = aws.region1
+  name        = "postgresql_password"
+  description = "NetBox PostgreSQL user"
+  type        = "SecureString"
+  value       = "Password123"
+}
+
+####################################################
+# workload
+####################################################
+
 locals {
   netbox_init_dir = "/var/lib/aws"
   netbox_init_vars = {
-    USERNAME = local.username
-    PASSWORD = local.password
+    ADMIN_USERNAME = local.username
+    ADMIN_PASSWORD = local.password
   }
   netbox_startup_files = {
-    "${local.netbox_init_dir}/netbox/netbox.sh" = { owner = "root", permissions = "0744", content = templatefile("./scripts/netbox.sh", local.netbox_init_vars) }
+    "${local.netbox_init_dir}/netbox/netbox.sh" = { owner = "root", permissions = "0744", content = templatefile("./scripts/netbox/netbox.sh", local.netbox_init_vars) }
   }
 }
 
