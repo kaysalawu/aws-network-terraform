@@ -8,7 +8,7 @@ locals {
 ####################################################
 
 module "eks" {
-  source = "../.."
+  source = "../../modules/terraform-aws-eks-20.35.0"
 
   cluster_name    = local.name
   cluster_version = local.cluster_version
@@ -29,18 +29,15 @@ module "eks" {
   node_groups = {
     example = {
       desired_capacity = 1
-
-      instance_types = ["t3.large"]
+      instance_types   = ["t3.large"]
       k8s_labels = {
-        Example    = "managed_node_groups"
-        GithubRepo = "terraform-aws-eks"
-        GithubOrg  = "terraform-aws-modules"
+        lab = "managed_node_groups"
       }
       additional_tags = {
         ExtraTag = "example"
       }
       update_config = {
-        max_unavailable_percentage = 50 # or set `max_unavailable`
+        max_unavailable_percentage = 50
       }
     }
   }
@@ -94,8 +91,6 @@ module "eks" {
   #     }
   #   }
   # }
-
-  manage_aws_auth = false
 
   tags = {
     Example    = local.name
