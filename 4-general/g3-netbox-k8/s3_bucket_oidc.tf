@@ -1,5 +1,10 @@
+
+resource "random_id" "oidc_random" {
+  byte_length = 2
+}
+
 resource "aws_s3_bucket" "oidc" {
-  bucket = "${local.service}-oidc"
+  bucket = "${local.service}-oidc-${random_id.oidc_random.hex}"
   tags = {
     Name    = "${local.service}-oidc"
     Service = local.service

@@ -11,6 +11,6 @@ locals {
 }
 
 data "aws_region" "default" {
-  name = "eu-west-1"
+  name = local.default_region
 }
 

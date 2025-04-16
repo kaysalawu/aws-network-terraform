@@ -10,13 +10,7 @@ locals {
   enable_ipv6            = false
   enable_vpc_flow_logs   = false
 
-  hub1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
-  hub2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
-  branch1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  tgw1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
-  tgw2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
+  hub1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
 }
 
 resource "random_id" "random" {
@@ -29,25 +23,16 @@ resource "random_id" "random" {
 
 provider "aws" {
   region = local.region1
-  # access_key = var.aws_access_key
-  # secret_key = var.aws_secret_access_key
-  # token      = var.aws_session_token != null ? var.aws_session_token : null
 }
 
 provider "aws" {
   alias  = "default"
   region = local.region1
-  # access_key = var.aws_access_key
-  # secret_key = var.aws_secret_access_key
-  # token      = var.aws_session_token != null ? var.aws_session_token : null
 }
 
 provider "aws" {
   alias  = "region1"
   region = local.region1
-  # access_key = var.aws_access_key
-  # secret_key = var.aws_secret_access_key
-  # token      = var.aws_session_token != null ? var.aws_session_token : null
 }
 
 ####################################################
@@ -67,12 +52,6 @@ data "aws_ami" "ubuntu_region1" {
     values = ["hvm"]
   }
 }
-
-# data "aws_route53_zone" "public" {
-#   provider     = aws.default
-#   name         = "cloudtuple.org."
-#   private_zone = false
-# }
 
 data "aws_caller_identity" "current" {
   provider = aws.default
