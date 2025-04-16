@@ -1,6 +1,6 @@
 
 locals {
-  cluster_version = "1.20"
+  cluster_version = "1.32"
 }
 
 ####################################################
@@ -21,80 +21,58 @@ module "eks" {
     module.hub1.subnet_ids["MainSubnetA"],
     module.hub1.subnet_ids["MainSubnetB"],
   ]
-  fargate_subnets = [
+  control_plane_subnet_ids = [
     module.hub1.subnet_ids["ManagementSubnetA"],
     module.hub1.subnet_ids["ManagementSubnetB"],
   ]
 
-  node_groups = {
-    example = {
-      desired_capacity = 1
-      instance_types   = ["t3.large"]
-      k8s_labels = {
-        lab = "managed_node_groups"
+  fargate_profiles = {
+    default = {
+      name = "default"
+      selectors = [
+        {
+          namespace = "kube-system"
+          labels = {
+            k8s-app = "kube-dns"
+          }
+        },
+        {
+          namespace = "default"
+          labels = {
+            WorkerType = "fargate"
+          }
+        }
+      ]
+
+      tags = {
+        Owner = "default"
       }
-      additional_tags = {
-        ExtraTag = "example"
-      }
-      update_config = {
-        max_unavailable_percentage = 50
+
+      timeouts = {
+        create = "20m"
+        delete = "20m"
       }
     }
-  }
 
-  # fargate_profiles = {
-  #   default = {
-  #     name = "default"
-  #     selectors = [
-  #       {
-  #         namespace = "kube-system"
-  #         labels = {
-  #           k8s-app = "kube-dns"
-  #         }
-  #       },
-  #       {
-  #         namespace = "default"
-  #         labels = {
-  #           WorkerType = "fargate"
-  #         }
-  #       }
-  #     ]
+    secondary = {
+      name = "secondary"
+      selectors = [
+        {
+          namespace = "default"
+          labels = {
+            Environment = "test"
+            GithubRepo  = "terraform-aws-eks"
+            GithubOrg   = "terraform-aws-modules"
+          }
+        }
+      ]
 
-  #     tags = {
-  #       Owner = "default"
-  #     }
+      # Using specific subnets instead of the ones configured in EKS (`subnets` and `fargate_subnets`)
+      subnets = [module.vpc.private_subnets[1]]
 
-  #     timeouts = {
-  #       create = "20m"
-  #       delete = "20m"
-  #     }
-  #   }
-
-  #   secondary = {
-  #     name = "secondary"
-  #     selectors = [
-  #       {
-  #         namespace = "default"
-  #         labels = {
-  #           Environment = "test"
-  #           GithubRepo  = "terraform-aws-eks"
-  #           GithubOrg   = "terraform-aws-modules"
-  #         }
-  #       }
-  #     ]
-
-  #     # Using specific subnets instead of the ones configured in EKS (`subnets` and `fargate_subnets`)
-  #     subnets = [module.vpc.private_subnets[1]]
-
-  #     tags = {
-  #       Owner = "secondary"
-  #     }
-  #   }
-  # }
-
-  tags = {
-    Example    = local.name
-    GithubRepo = "terraform-aws-eks"
-    GithubOrg  = "terraform-aws-modules"
+      tags = {
+        Owner = "secondary"
+      }
+    }
   }
 }
