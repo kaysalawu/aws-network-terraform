@@ -10,7 +10,13 @@ locals {
   enable_ipv6            = false
   enable_vpc_flow_logs   = false
 
-  hub1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  hub1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  hub2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  branch1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  branch2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  branch3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
+  tgw1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
+  tgw2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
 }
 
 resource "random_id" "random" {
@@ -22,17 +28,10 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  region = local.region1
-}
-
-provider "aws" {
-  alias  = "default"
-  region = local.region1
-}
-
-provider "aws" {
-  alias  = "region1"
-  region = local.region1
+  region     = local.region1
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_access_key
+  token      = var.aws_session_token
 }
 
 ####################################################
@@ -40,7 +39,6 @@ provider "aws" {
 ####################################################
 
 data "aws_ami" "ubuntu_region1" {
-  provider    = aws.region1
   most_recent = true
   owners      = ["099720109477"]
   filter {
@@ -53,11 +51,12 @@ data "aws_ami" "ubuntu_region1" {
   }
 }
 
-data "aws_caller_identity" "current" {
-  provider = aws.default
-}
+# data "aws_route53_zone" "public" {
+#   name         = "cloudtuple.org."
+#   private_zone = false
+# }
 
-data "aws_availability_zones" "available" {}
+data "aws_caller_identity" "current" {}
 
 ####################################################
 # network features
@@ -100,7 +99,6 @@ locals {
 
 module "common_region1" {
   source                = "../../modules/common"
-  providers             = { aws = aws.region1 }
   env                   = "common"
   prefix                = var.prefix
   region                = local.region1
@@ -178,8 +176,7 @@ locals {
 # branch1
 
 resource "aws_eip" "branch1_nva_untrust" {
-  provider = aws.region1
-  domain   = "vpc"
+  domain = "vpc"
   tags = {
     Name = "${local.branch1_prefix}nva-untrust"
   }

@@ -1,6 +1,6 @@
-#!bin/bash
+#!bin/bash/
 
-export REGION=eu-central-1
-export CLUSTER_NAME=g3-hub1-eks-fargate
+export REGION=eu-west-1
+export CLUSTER_NAME=ex-fargate-profile
 
 aws eks --region $REGION update-kubeconfig --name $CLUSTER_NAME

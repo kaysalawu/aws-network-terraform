@@ -1,8 +1,10 @@
 
 locals {
-  prefix          = var.prefix == "" ? "" : format("%s-", var.prefix)
-  public_subnets  = { for k, v in var.subnets : k => v if v.scope == "public" }
-  private_subnets = { for k, v in var.subnets : k => v if v.scope == "private" }
+  prefix              = var.prefix == "" ? "" : format("%s-", var.prefix)
+  public_subnet_tags  = { "kubernetes.io/role/elb" = 1 }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = 1 }
+  public_subnets      = { for k, v in var.subnets : k => v if v.scope == "public" }
+  private_subnets     = { for k, v in var.subnets : k => v if v.scope == "private" }
 
   route_table_subnet_association = flatten([for k, v in local.route_table_subnet_association_ : v])
   route_table_subnet_association_ = {
@@ -135,12 +137,16 @@ resource "aws_subnet" "this" {
   )
   map_public_ip_on_launch = each.value.map_public_ip_on_launch
 
-  tags = merge(var.tags,
+  tags = merge(
+    var.tags,
     {
       Name  = each.key
       Scope = each.value.scope
       Az    = each.value.az
-    }
+    },
+    each.value.scope == "public" ? local.public_subnet_tags :
+    each.value.scope == "private" ? local.private_subnet_tags :
+    {}
   )
 }
 

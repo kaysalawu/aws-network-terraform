@@ -8,8 +8,8 @@ locals {
   vmsize   = "t3.micro"
   psk      = "changeme"
 
-  default_region = "eu-central-1"
-  region1        = "eu-central-1"
+  default_region = "eu-west-1"
+  region1        = "eu-west-1"
   region2        = "eu-west-3"
   region1_code   = "eu"
   region2_code   = "us"

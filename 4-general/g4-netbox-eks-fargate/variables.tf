@@ -1,15 +1,17 @@
 
 variable "prefix" {
   description = "prefix used for all resources"
-  default     = "g3"
+  default     = "g4"
 }
 
 variable "aws_access_key" {
   description = "account access key"
+  default     = null
 }
 
 variable "aws_secret_access_key" {
   description = "account secret key"
+  default     = null
 }
 
 variable "aws_session_token" {

@@ -6,11 +6,10 @@
 # network
 
 module "hub1" {
-  source    = "../../modules/base"
-  providers = { aws = aws.region1 }
-  prefix    = trimsuffix(local.hub1_prefix, "-")
-  region    = local.hub1_region
-  tags      = local.hub1_tags
+  source = "../../modules/base"
+  prefix = trimsuffix(local.hub1_prefix, "-")
+  region = local.hub1_region
+  tags   = local.hub1_tags
 
   cidr               = local.hub1_cidr
   use_ipv4_ipam_pool = false
