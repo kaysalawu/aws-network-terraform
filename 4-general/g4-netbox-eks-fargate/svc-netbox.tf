@@ -3,23 +3,13 @@
 # data "aws_availability_zones" "available" {}
 
 locals {
-  name            = "${local.hub1_prefix}-netbox"
+  name            = "${local.hub1_prefix}netbox"
   cluster_version = "1.29"
-  # region          = "eu-west-1"
-
-  # vpc_cidr = "10.0.0.0/16"
-  # azs      = slice(data.aws_availability_zones.available.names, 0, 3)
-
-  tags = {
-    Example    = local.name
-    GithubRepo = "terraform-aws-eks"
-    GithubOrg  = "terraform-aws-modules"
-  }
 }
 
-################################################################################
+####################################################
 # netbox eks fargate cluster
-################################################################################
+####################################################
 
 # https://github.com/terraform-aws-modules/terraform-aws-eks/blob/v20.14.0/examples/fargate_profile/main.tf
 
@@ -29,6 +19,7 @@ module "netbox" {
   cluster_name                   = local.name
   cluster_version                = local.cluster_version
   cluster_endpoint_public_access = true
+  create_iam_role                = true
 
   cluster_addons = {
     kube-proxy = {}
@@ -70,18 +61,6 @@ module "netbox" {
             app = "netbox"
           }
         },
-        # {
-        #   namespace = "backend"
-        #   labels = {
-        #     Application = "backend"
-        #   }
-        # },
-        # {
-        #   namespace = "app-*"
-        #   labels = {
-        #     Application = "app-wildcard"
-        #   }
-        # }
       ]
 
       # Using specific subnets instead of the subnets supplied for the cluster itself
@@ -103,56 +82,6 @@ module "netbox" {
   tags = local.hub1_tags
 }
 
-################################################################################
-# Sub-Module Usage on Existing/Separate Cluster
-################################################################################
-
-# module "fargate_profile" {
-#   source       = "../../modules/terraform-aws-eks/modules/fargate-profile"
-#   name         = "separate-fargate-profile"
-#   cluster_name = module.eks.cluster_name
-#   subnet_ids   = module.vpc.private_subnets
-#   selectors = [{
-#     namespace = "kube-system"
-#   }]
-#   tags = merge(local.tags, { Separate = "fargate-profile" })
-# }
-
-# module "disabled_fargate_profile" {
-#   source = "../../modules/terraform-aws-eks/modules/fargate-profile"
-#   create = false
-# }
-
-################################################################################
-# Supporting Resources
-################################################################################
-
-# module "vpc" {
-#   source  = "terraform-aws-modules/vpc/aws"
-#   version = "~> 5.0"
-
-#   name = local.name
-#   cidr = local.vpc_cidr
-
-#   azs             = local.azs
-#   private_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
-#   public_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 48)]
-#   intra_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 52)]
-
-#   enable_nat_gateway = true
-#   single_nat_gateway = true
-
-#   public_subnet_tags = {
-#     "kubernetes.io/role/elb" = 1
-#   }
-
-#   private_subnet_tags = {
-#     "kubernetes.io/role/internal-elb" = 1
-#   }
-
-#   tags = local.tags
-# }
-
 resource "aws_iam_policy" "hub1_netbox_additional" {
   name = "${local.hub1_prefix}-netbox-additional"
   policy = jsonencode({
@@ -168,3 +97,33 @@ resource "aws_iam_policy" "hub1_netbox_additional" {
     ]
   })
 }
+
+# data "aws_iam_user" "kayodesalawu" {
+#   user_name = "kayode.salawu@wise.com"
+# }
+
+# resource "aws_eks_access_entry" "kayodesalawu" {
+#   cluster_name  = module.netbox.cluster_id
+#   principal_arn = data.aws_iam_user.kayodesalawu.arn
+#   type          = "STANDARD"
+# }
+
+# resource "aws_eks_access_policy_association" "kayodesalawu_AmazonEKSAdminPolicy" {
+#   cluster_name  = module.netbox.cluster_id
+#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+#   principal_arn = aws_eks_access_entry.kayodesalawu.principal_arn
+
+#   access_scope {
+#     type = "cluster"
+#   }
+# }
+
+# resource "aws_eks_access_policy_association" "kayodesalawu_AmazonEKSClusterAdminPolicy" {
+#   cluster_name  = module.netbox.cluster_id
+#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+#   principal_arn = aws_eks_access_entry.kayodesalawu.principal_arn
+
+#   access_scope {
+#     type = "cluster"
+#   }
+# }
