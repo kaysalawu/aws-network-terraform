@@ -138,8 +138,8 @@ module "rds_postgres" {
   vpc_id              = module.hub1.vpc_id
   allowed_cidr_blocks = local.private_prefixes_ipv4
   subnet_ids = [
-    module.hub1.subnet_ids["DbSubnetA"],
-    module.hub1.subnet_ids["DbSubnetB"],
+    module.hub1.subnet_ids["DatabaseSubnetA"],
+    module.hub1.subnet_ids["DatabaseSubnetB"],
   ]
   db_name              = aws_ssm_parameter.postgresql_db_name.value
   db_username          = aws_ssm_parameter.postgresql_username.value
