@@ -142,24 +142,6 @@ module "branch1_nva" {
   ]
 }
 
-# dns
-
-resource "aws_route53_record" "branch1_nva" {
-  provider = aws.region1
-  zone_id  = data.aws_route53_zone.public.zone_id
-  name     = "branch1-nva.${local.region1_code}"
-  type     = "A"
-  ttl      = 300
-  records = [
-    aws_eip.branch1_nva_untrust.public_ip,
-  ]
-  lifecycle {
-    ignore_changes = [
-      zone_id,
-    ]
-  }
-}
-
 # static routes
 
 resource "aws_route" "branch1_routes" {

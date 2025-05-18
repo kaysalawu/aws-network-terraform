@@ -132,6 +132,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.11.19.0/24", ipv6_cidr = "2000:abc:11:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.11.20.0/24", ipv6_cidr = "2000:abc:11:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.11.21.0/24", ipv6_cidr = "2000:abc:11:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.11.22.0/24", ipv6_cidr = "2000:abc:11:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.11.23.0/24", ipv6_cidr = "2000:abc:11:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.11.80.0/20", ipv6_cidr = "2000:abc:11:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.11.96.0/20", ipv6_cidr = "2000:abc:11:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -211,6 +213,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.22.19.0/24", ipv6_cidr = "2000:abc:22:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.22.20.0/24", ipv6_cidr = "2000:abc:22:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.22.21.0/24", ipv6_cidr = "2000:abc:22:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.22.22.0/24", ipv6_cidr = "2000:abc:22:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.22.23.0/24", ipv6_cidr = "2000:abc:22:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.22.80.0/20", ipv6_cidr = "2000:abc:22:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.22.96.0/20", ipv6_cidr = "2000:abc:22:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -291,6 +295,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.10.19.0/24", ipv6_cidr = "2000:abc:10:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.10.20.0/24", ipv6_cidr = "2000:abc:10:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.10.21.0/24", ipv6_cidr = "2000:abc:10:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.10.22.0/24", ipv6_cidr = "2000:abc:10:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.10.23.0/24", ipv6_cidr = "2000:abc:10:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.10.80.0/20", ipv6_cidr = "2000:abc:10:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.10.96.0/20", ipv6_cidr = "2000:abc:10:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -348,6 +354,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.20.19.0/24", ipv6_cidr = "2000:abc:20:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.20.20.0/24", ipv6_cidr = "2000:abc:20:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.20.21.0/24", ipv6_cidr = "2000:abc:20:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.20.22.0/24", ipv6_cidr = "2000:abc:20:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.20.23.0/24", ipv6_cidr = "2000:abc:20:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.20.80.0/20", ipv6_cidr = "2000:abc:20:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.20.96.0/20", ipv6_cidr = "2000:abc:20:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -405,6 +413,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.30.19.0/24", ipv6_cidr = "2000:abc:30:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.30.20.0/24", ipv6_cidr = "2000:abc:30:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.30.21.0/24", ipv6_cidr = "2000:abc:30:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.30.22.0/24", ipv6_cidr = "2000:abc:30:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.30.23.0/24", ipv6_cidr = "2000:abc:30:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.30.80.0/20", ipv6_cidr = "2000:abc:30:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.30.96.0/20", ipv6_cidr = "2000:abc:30:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -461,6 +471,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.1.19.0/24", ipv6_cidr = "2000:abc:1:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.1.20.0/24", ipv6_cidr = "2000:abc:1:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.1.21.0/24", ipv6_cidr = "2000:abc:1:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.1.22.0/24", ipv6_cidr = "2000:abc:1:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.1.23.0/24", ipv6_cidr = "2000:abc:1:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.1.80.0/20", ipv6_cidr = "2000:abc:1:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.1.96.0/20", ipv6_cidr = "2000:abc:1:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -517,6 +529,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.2.19.0/24", ipv6_cidr = "2000:abc:2:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.2.20.0/24", ipv6_cidr = "2000:abc:2:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.2.21.0/24", ipv6_cidr = "2000:abc:2:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.2.22.0/24", ipv6_cidr = "2000:abc:2:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.2.23.0/24", ipv6_cidr = "2000:abc:2:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.2.80.0/20", ipv6_cidr = "2000:abc:2:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.2.96.0/20", ipv6_cidr = "2000:abc:2:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -573,6 +587,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.3.19.0/24", ipv6_cidr = "2000:abc:3:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.3.20.0/24", ipv6_cidr = "2000:abc:3:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.3.21.0/24", ipv6_cidr = "2000:abc:3:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.3.22.0/24", ipv6_cidr = "2000:abc:3:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.3.23.0/24", ipv6_cidr = "2000:abc:3:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.3.80.0/20", ipv6_cidr = "2000:abc:3:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.3.96.0/20", ipv6_cidr = "2000:abc:3:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -629,6 +645,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.4.19.0/24", ipv6_cidr = "2000:abc:4:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.4.20.0/24", ipv6_cidr = "2000:abc:4:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.4.21.0/24", ipv6_cidr = "2000:abc:4:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.4.22.0/24", ipv6_cidr = "2000:abc:4:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.4.23.0/24", ipv6_cidr = "2000:abc:4:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.4.80.0/20", ipv6_cidr = "2000:abc:4:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.4.96.0/20", ipv6_cidr = "2000:abc:4:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -685,6 +703,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.5.19.0/24", ipv6_cidr = "2000:abc:5:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.5.20.0/24", ipv6_cidr = "2000:abc:5:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.5.21.0/24", ipv6_cidr = "2000:abc:5:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.5.22.0/24", ipv6_cidr = "2000:abc:5:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.5.23.0/24", ipv6_cidr = "2000:abc:5:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.5.80.0/20", ipv6_cidr = "2000:abc:5:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.5.96.0/20", ipv6_cidr = "2000:abc:5:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }
@@ -741,6 +761,8 @@ locals {
     ("InternalNLBSubnetB") = { cidr = "10.6.19.0/24", ipv6_cidr = "2000:abc:6:19::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EndpointSubnetA")    = { cidr = "10.6.20.0/24", ipv6_cidr = "2000:abc:6:20::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EndpointSubnetB")    = { cidr = "10.6.21.0/24", ipv6_cidr = "2000:abc:6:21::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
+    ("DatabaseSubnetA")    = { cidr = "10.1.22.0/24", ipv6_cidr = "2000:abc:1:22::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
+    ("DatabaseSubnetB")    = { cidr = "10.1.23.0/24", ipv6_cidr = "2000:abc:1:23::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
     ("EksSubnetA")         = { cidr = "10.6.80.0/20", ipv6_cidr = "2000:abc:6:80::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "a", scope = "private", }
     ("EksSubnetB")         = { cidr = "10.6.96.0/20", ipv6_cidr = "2000:abc:6:96::/64", ipv6_newbits = 8, ipv6_netnum = 0, az = "b", scope = "private", }
   }

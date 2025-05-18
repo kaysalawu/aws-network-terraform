@@ -28,10 +28,7 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  region     = local.region1
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_access_key
-  token      = var.aws_session_token
+  region = local.region1
 }
 
 ####################################################
@@ -69,26 +66,7 @@ locals {
 
   hub1_features = {
     dns_resolver_config = [
-      # {
-      # inbound = [
-      #   { subnet = "DnsInboundSubnetA", ip = local.hub1_dns_in_addr1 },
-      #   { subnet = "DnsInboundSubnetB", ip = local.hub1_dns_in_addr2 }
-      # ]
-      # outbound = [
-      #   { subnet = "DnsOutboundSubnetA", ip = local.hub1_dns_out_addr1 },
-      #   { subnet = "DnsOutboundSubnetB", ip = local.hub1_dns_out_addr2 }
-      # ]
-      # rules = [
-      #   {
-      #     domain = local.onprem_domain
-      #     target_ips = [
-      #       local.branch1_dns_addr,
-      #       local.branch3_dns_addr,
-      #     ]
-      #   },
-      # ]
-      # additional_associated_vpc_ids = []
-      # }
+
     ]
   }
 }
