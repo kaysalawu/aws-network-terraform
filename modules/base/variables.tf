@@ -167,14 +167,16 @@ variable "subnets" {
 variable "bastion_config" {
   description = "A map of bastion configuration"
   type = object({
-    enable               = bool
-    instance_type        = optional(string, "t2.micro")
-    key_name             = optional(string, null)
-    private_ips          = optional(list(string), [])
-    ipv6_addresses       = optional(list(string), [])
-    iam_instance_profile = optional(string, null)
-    public_dns_zone_name = optional(string, null)
-    dns_prefix           = optional(string, null)
+    enable                  = bool
+    instance_type           = optional(string, "t2.micro")
+    key_name                = optional(string, null)
+    private_ip_list_enabled = optional(bool, true)
+    private_ip_list         = optional(list(string), [])
+    ipv6_addresses          = optional(list(string), [])
+    iam_instance_profile    = optional(string, null)
+    public_dns_zone_name    = optional(string, null)
+    dns_prefix              = optional(string, null)
+    security_group_ids      = optional(list(string), [])
   })
   default = {
     enable = false

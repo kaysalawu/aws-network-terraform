@@ -127,7 +127,7 @@ module "branch3_nva" {
     {
       name               = "${local.branch3_prefix}nva-untrust"
       subnet_id          = module.branch3.subnet_ids["UntrustSubnetA"]
-      private_ips        = [local.branch3_nva_untrust_addr, ]
+      private_ip_list    = [local.branch3_nva_untrust_addr, ]
       security_group_ids = [module.branch3.nva_security_group_id, ]
       eip_tag_name       = "${local.branch3_prefix}nva-untrust"
       source_dest_check  = false
@@ -135,29 +135,11 @@ module "branch3_nva" {
     {
       name               = "${local.branch3_prefix}nva-trust"
       subnet_id          = module.branch3.subnet_ids["TrustSubnetA"]
-      private_ips        = [local.branch3_nva_trust_addr, ]
+      private_ip_list    = [local.branch3_nva_trust_addr, ]
       security_group_ids = [module.branch3.ec2_security_group_id, ]
       source_dest_check  = false
     }
   ]
-}
-
-# dns
-
-resource "aws_route53_record" "branch3_nva" {
-  provider = aws.region2
-  zone_id  = data.aws_route53_zone.public.zone_id
-  name     = "branch3-nva.${local.region2_code}"
-  type     = "A"
-  ttl      = 300
-  records = [
-    aws_eip.branch3_nva_untrust.public_ip,
-  ]
-  lifecycle {
-    ignore_changes = [
-      zone_id,
-    ]
-  }
 }
 
 # static routes

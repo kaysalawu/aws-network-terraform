@@ -34,7 +34,6 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  alias      = "default"
   region     = local.region1
   access_key = var.aws_access_key
   secret_key = var.aws_secret_access_key
@@ -86,15 +85,7 @@ data "aws_ami" "ubuntu_region2" {
   }
 }
 
-data "aws_route53_zone" "public" {
-  provider     = aws.default
-  name         = "cloudtuple.org."
-  private_zone = false
-}
-
-data "aws_caller_identity" "current" {
-  provider = aws.default
-}
+data "aws_caller_identity" "current" {}
 
 ####################################################
 # network features

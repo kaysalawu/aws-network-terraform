@@ -78,9 +78,16 @@ data "aws_iam_policy_document" "ec2_assume_role_policy" {
   }
 }
 
+# ec2 instances can assume this role
+
+resource "aws_iam_role" "ec2_iam_role" {
+  name               = "${local.prefix}ec2-iam-role-${var.region}"
+  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
+}
+
 # policy granting full access
 
-data "aws_iam_policy_document" "s3_policy" {
+data "aws_iam_policy_document" "full_access_policy" {
   statement {
     actions   = ["*"]
     resources = ["*"]
@@ -88,20 +95,15 @@ data "aws_iam_policy_document" "s3_policy" {
   }
 }
 
-# iam role for ec2 with assume role permissions
+# ec2 iam role shoudl have full access to all resources
 
-resource "aws_iam_role" "ec2_iam_role" {
-  name               = "${local.prefix}ec2-iam-role-${var.region}"
-  assume_role_policy = data.aws_iam_policy_document.ec2_assume_role_policy.json
-}
-
-# attach policy to role
-
-resource "aws_iam_role_policy" "s3_iam_policy" {
-  name   = "${local.prefix}s3-iam-policy-${var.region}"
+resource "aws_iam_role_policy" "full_access_iam_policy" {
+  name   = "${local.prefix}full-access-iam-policy-${var.region}"
   role   = aws_iam_role.ec2_iam_role.id
-  policy = data.aws_iam_policy_document.s3_policy.json
+  policy = data.aws_iam_policy_document.full_access_policy.json
 }
+
+# attach the iam role to ec2 instances that use this profile
 
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
   name = "${local.prefix}ec2-instance-profile-${var.region}"

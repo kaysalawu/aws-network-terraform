@@ -1,6 +1,6 @@
 
 locals {
-  external_ingress_ports = ["80", "8080", "443", "3000", ]
+  external_ingress_ports = ["80", "8080", "8000", "443", "3000", ]
 }
 
 # TODO: use prefix lists for private prefixes

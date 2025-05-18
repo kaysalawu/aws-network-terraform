@@ -91,7 +91,7 @@ module "hub2_vm" {
     {
       name               = "${local.hub2_prefix}vm-main"
       subnet_id          = module.hub2.subnet_ids["MainSubnetA"]
-      private_ips        = [local.hub2_vm_addr, ]
+      private_ip_list    = [local.hub2_vm_addr, ]
       security_group_ids = [module.hub2.ec2_security_group_id, ]
       dns_config         = { zone_name = local.region2_dns_zone, name = local.hub2_vm_hostname }
     }

@@ -71,16 +71,17 @@ variable "user_data" {
 variable "interfaces" {
   description = "list of interfaces"
   type = list(object({
-    name               = string
-    subnet_id          = string
-    private_ips        = optional(list(string), [])
-    security_group_ids = optional(list(string), [])
-    ipv6_addresses     = optional(list(string), [])
-    create_eip         = optional(bool, false)
-    eip_id             = optional(string, null)
-    eip_tag_name       = optional(string, null)
-    public_ip          = optional(string, null)
-    source_dest_check  = optional(bool, true)
+    name                    = string
+    subnet_id               = string
+    private_ip_list_enabled = optional(bool, true)
+    private_ip_list         = optional(list(string), [])
+    security_group_ids      = optional(list(string), [])
+    ipv6_addresses          = optional(list(string), [])
+    create_eip              = optional(bool, false)
+    eip_id                  = optional(string, null)
+    eip_tag_name            = optional(string, null)
+    public_ip               = optional(string, null)
+    source_dest_check       = optional(bool, true)
     dns_config = optional(object({
       public    = optional(string, false)
       zone_name = optional(string, null)
@@ -96,4 +97,19 @@ variable "source_dest_check" {
   description = "enable/disable source/dest check"
   type        = bool
   default     = null
+}
+
+variable "root_block_device" {
+  description = "Customize details about the root block device of the instance. See Block Devices below for details"
+  type = object({
+    delete_on_termination = optional(bool, true)
+    encrypted             = optional(bool, false)
+    iops                  = optional(number, null)
+    kms_key_id            = optional(string, null)
+    tags                  = optional(map(string), {})
+    throughput            = optional(number, null)
+    volume_size           = optional(number, null)
+    volume_type           = optional(string, null) # standard, gp2, gp3, io1, io2, sc1, st1.
+  })
+  default = null
 }
