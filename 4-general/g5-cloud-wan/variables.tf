@@ -15,3 +15,8 @@ variable "aws_secret_access_key" {
 variable "public_key_path" {
   description = "path to public key for ec2 SSH"
 }
+
+variable "aws_profile" {
+  description = "account profile name"
+  default     = null
+}

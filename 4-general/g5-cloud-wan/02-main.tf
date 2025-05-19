@@ -34,23 +34,20 @@ resource "random_id" "random" {
 ####################################################
 
 provider "aws" {
-  region     = local.region1
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_access_key
+  region  = local.region1
+  profile = var.aws_profile
 }
 
 provider "aws" {
-  alias      = "region1"
-  region     = local.region1
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_access_key
+  alias   = "region1"
+  region  = local.region1
+  profile = var.aws_profile
 }
 
 provider "aws" {
-  alias      = "region2"
-  region     = local.region2
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_access_key
+  alias   = "region2"
+  region  = local.region2
+  profile = var.aws_profile
 }
 
 ####################################################
@@ -108,13 +105,13 @@ locals {
         { subnet = "DnsOutboundSubnetB", ip = local.hub1_dns_out_addr2 }
       ]
       rules = [
-        {
-          domain = local.onprem_domain
-          target_ips = [
-            local.branch1_dns_addr,
-            local.branch3_dns_addr,
-          ]
-        },
+        # {
+        #   domain = local.onprem_domain
+        #   target_ips = [
+        #     local.branch1_dns_addr,
+        #     local.branch3_dns_addr,
+        #   ]
+        # },
       ]
       additional_associated_vpc_ids = [
         module.spoke1.vpc_id,
@@ -135,13 +132,13 @@ locals {
         { subnet = "DnsOutboundSubnetB", ip = local.hub2_dns_out_addr2 }
       ]
       rules = [
-        {
-          domain = local.onprem_domain
-          target_ips = [
-            local.branch3_dns_addr,
-            local.branch1_dns_addr,
-          ]
-        },
+        # {
+        #   domain = local.onprem_domain
+        #   target_ips = [
+        #     local.branch3_dns_addr,
+        #     local.branch1_dns_addr,
+        #   ]
+        # },
       ]
       additional_associated_vpc_ids = [
         module.spoke4.vpc_id,
@@ -196,14 +193,14 @@ locals {
 
   init_dir = "/var/lib/aws"
   vm_script_targets_region1 = [
-    { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
+    # { name = "branch1", host = local.branch1_vm_fqdn, ipv4 = local.branch1_vm_addr, ipv6 = local.branch1_vm_addr_v6, probe = true },
     { name = "hub1   ", host = local.hub1_vm_fqdn, ipv4 = local.hub1_vm_addr, ipv6 = local.hub1_vm_addr_v6, probe = true },
     { name = "hub1-spoke3-pep", host = local.hub1_spoke3_pep_fqdn, ping = false, probe = true },
     { name = "spoke1 ", host = local.spoke1_vm_fqdn, ipv4 = local.spoke1_vm_addr, ipv6 = local.spoke1_vm_addr_v6, probe = true },
     { name = "spoke2 ", host = local.spoke2_vm_fqdn, ipv4 = local.spoke2_vm_addr, ipv6 = local.spoke2_vm_addr_v6, probe = true },
   ]
   vm_script_targets_region2 = [
-    { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
+    # { name = "branch3", host = local.branch3_vm_fqdn, ipv4 = local.branch3_vm_addr, ipv6 = local.branch3_vm_addr_v6, probe = true },
     { name = "hub2   ", host = local.hub2_vm_fqdn, ipv4 = local.hub2_vm_addr, ipv6 = local.hub2_vm_addr_v6, probe = true },
     { name = "hub2-spoke6-pep", host = local.hub2_spoke6_pep_fqdn, ping = false, probe = true },
     { name = "spoke4 ", host = local.spoke4_vm_fqdn, ipv4 = local.spoke4_vm_addr, ipv6 = local.spoke4_vm_addr_v6, probe = true },
@@ -305,23 +302,23 @@ module "probe_vm_cloud_init" {
 
 # branch1
 
-resource "aws_eip" "branch1_nva_untrust" {
-  provider = aws.region1
-  domain   = "vpc"
-  tags = {
-    Name = "${local.branch1_prefix}nva-untrust"
-  }
-}
+# resource "aws_eip" "branch1_nva_untrust" {
+#   provider = aws.region1
+#   domain   = "vpc"
+#   tags = {
+#     Name = "${local.branch1_prefix}nva-untrust"
+#   }
+# }
 
 # branch3
 
-resource "aws_eip" "branch3_nva_untrust" {
-  provider = aws.region2
-  domain   = "vpc"
-  tags = {
-    Name = "${local.branch3_prefix}nva-untrust"
-  }
-}
+# resource "aws_eip" "branch3_nva_untrust" {
+#   provider = aws.region2
+#   domain   = "vpc"
+#   tags = {
+#     Name = "${local.branch3_prefix}nva-untrust"
+#   }
+# }
 
 ####################################################
 # output files
