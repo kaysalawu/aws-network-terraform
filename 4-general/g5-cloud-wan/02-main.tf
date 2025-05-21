@@ -10,19 +10,16 @@ locals {
   enable_ipv6            = false
   enable_vpc_flow_logs   = false
 
-  hub1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
-  hub2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
-  branch1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  branch3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "branch" }
-  spoke1_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke2_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke3_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
-  spoke4_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke5_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
-  spoke6_tags  = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
-  tgw1_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
-  tgw2_tags    = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
+  hub1_tags   = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  hub2_tags   = { "lab" = var.prefix, "env" = "prod", "nodeType" = "hub" }
+  spoke1_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke2_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke3_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
+  spoke4_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke5_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "spoke" }
+  spoke6_tags = { "lab" = var.prefix, "env" = "prod", "nodeType" = "float" }
+  tgw1_tags   = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
+  tgw2_tags   = { "lab" = var.prefix, "env" = "prod", "nodeType" = "tgw" }
 }
 
 resource "random_id" "random" {
